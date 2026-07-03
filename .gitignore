@@ -1,0 +1,45 @@
+## .NET build artifacts
+bin/
+obj/
+out/
+
+## User-specific files
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+## Rider / Resharper
+_ReSharper*/
+*.[Rr]esharper
+
+## Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Secrets - never commit these
+## Local dev secrets should use `dotnet user-secrets`, which stores outside the repo.
+appsettings.Local.json
+*.pfx
+secrets.json
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## EF Core
+*.db
+*.sqlite
