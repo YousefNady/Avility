@@ -40,8 +40,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         // (Users, Roles, UserRoles, UserClaims, etc.).
         base.OnModelCreating(modelBuilder);
 
-        // Per-entity Fluent API configuration is added in Step 2, via
-        // modelBuilder.ApplyConfigurationsFromAssembly(...). Intentionally
-        // not added yet, to keep this step focused on the DbContext shell.
+        // Picks up every IEntityTypeConfiguration<T> in this assembly
+        // (Persistence/Configurations/). Deliberately the only thing this
+        // method does beyond the base call - no entity is configured
+        // inline here, so this class stays stable as the model grows.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }
