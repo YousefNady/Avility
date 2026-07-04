@@ -8,7 +8,7 @@ ASP.NET Core.
 ## Tech stack
 
 - .NET 10 / ASP.NET Core Web API
-- Entity Framework Core (SQL Server)
+- Entity Framework Core (SQLite)
 - Clean Architecture + CQRS via MediatR
 - FluentValidation
 - ASP.NET Identity + JWT authentication
@@ -44,14 +44,13 @@ dotnet build
 dotnet test
 ```
 
-Configure your local SQL Server connection string via user secrets rather
-than committing it:
-
-```bash
-cd src/Avility.API
-dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<your-connection-string>"
-```
+The database is SQLite, so `ConnectionStrings:DefaultConnection` in
+`appsettings.json`/`appsettings.Development.json` is just a local file
+path (`avility.db` / `avility.dev.db`), not a credential - unlike a SQL
+Server connection string, there's nothing here that needs `dotnet
+user-secrets`. If a future milestone introduces a secret-bearing setting
+(e.g. a JWT signing key), that one specifically should go into user
+secrets rather than appsettings.
 
 ## Architecture Decision Records
 
