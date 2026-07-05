@@ -14,7 +14,16 @@ public static class DependencyInjection
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
         services.AddValidatorsFromAssembly(assembly);
+
+        // Registration order = wrapping order: Logging runs first and
+        // last (outermost), Performance wraps only the actual handler
+        // execution (innermost) - so a validation failure is logged but
+        // not counted as a "slow request".
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehaviour<,>));
+
+        services.AddScoped<Auth.TokenIssuer>();
 
         return services;
     }
