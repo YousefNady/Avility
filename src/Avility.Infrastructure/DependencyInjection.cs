@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Avility.Infrastructure.Persistence.Interceptors;
+using Avility.Infrastructure.Services;
 
 namespace Avility.Infrastructure;
 
@@ -22,8 +24,12 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
+        services.AddSingleton<IDateTime, DateTimeService>();
+        services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
+        
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
+            options.UseSqlite(connectionString)
+                .AddInterceptors(sp.GetRequiredService<AuditableEntitySaveChangesInterceptor>()));
 
         // Application depends on IApplicationDbContext, never on
         // ApplicationDbContext directly (see ADR 0001 and
