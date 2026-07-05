@@ -43,3 +43,6 @@ Thumbs.db
 ## EF Core
 *.db
 *.sqlite
+
+## Serilog
+logs/
