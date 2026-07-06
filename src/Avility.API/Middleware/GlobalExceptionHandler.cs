@@ -1,4 +1,5 @@
 using Avility.API.Common.Responses;
+using Avility.Application.Common.Exceptions;
 using Avility.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
@@ -20,6 +21,9 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             ValidationException validationEx => (StatusCodes.Status400BadRequest,
                 ApiResponse<object>.FailureResponse("Validation failed.", ToErrorDictionary(validationEx))),
+            
+            NotFoundException notFoundEx => (StatusCodes.Status404NotFound,
+                ApiResponse<object>.FailureResponse(notFoundEx.Message)),
 
             DomainException domainEx => (StatusCodes.Status400BadRequest,
                 ApiResponse<object>.FailureResponse(domainEx.Message)),
