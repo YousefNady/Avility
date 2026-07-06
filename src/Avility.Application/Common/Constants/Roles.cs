@@ -1,4 +1,4 @@
-namespace Avility.Infrastructure.Identity;
+namespace Avility.Application.Common.Constants;
 
 /// <summary>
 /// Centralizes the three MVP role names as constants, so both the seed
