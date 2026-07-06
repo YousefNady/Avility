@@ -38,9 +38,10 @@ builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddRateLimiter(options =>
 {
+    var permitLimit = builder.Environment.IsEnvironment("Testing") ? 1000 : 5;
     options.AddFixedWindowLimiter("auth", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 5;
+        limiterOptions.PermitLimit = permitLimit;
         limiterOptions.Window = TimeSpan.FromMinutes(1);
         limiterOptions.QueueLimit = 0;
     });
@@ -68,3 +69,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program;
