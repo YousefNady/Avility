@@ -24,7 +24,10 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             
             NotFoundException notFoundEx => (StatusCodes.Status404NotFound,
                 ApiResponse<object>.FailureResponse(notFoundEx.Message)),
-
+            
+            ForbiddenAccessException forbiddenEx => (StatusCodes.Status403Forbidden,
+                ApiResponse<object>.FailureResponse(forbiddenEx.Message)),
+            
             DomainException domainEx => (StatusCodes.Status400BadRequest,
                 ApiResponse<object>.FailureResponse(domainEx.Message)),
 
