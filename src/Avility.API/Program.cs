@@ -3,6 +3,7 @@ using Avility.API.Middleware;
 using Avility.Application;
 using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,17 @@ builder.Services.AddApiVersioning(options =>
     options.ReportApiVersions = true;
 }).AddMvc();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -50,6 +62,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

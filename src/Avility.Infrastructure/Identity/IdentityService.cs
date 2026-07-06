@@ -79,4 +79,16 @@ public sealed class IdentityService : IIdentityService
         user.LastLoginAt = _dateTime.UtcNow;
         await _userManager.UpdateAsync(user);
     }
+    
+    public async Task<(string Email, IReadOnlyList<string> Roles)?> GetUserInfoAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return null;
+        }
+ 
+        var roles = await _userManager.GetRolesAsync(user);
+        return (user.Email, roles.ToList());
+    }
 }
