@@ -8,4 +8,5 @@ public interface IIdentityService
     Task<CredentialValidationResult> ValidateCredentialsAsync(string email, string password);
     Task UpdateLastLoginAsync(Guid userId);
     Task<(string Email, IReadOnlyList<string> Roles)?> GetUserInfoAsync(Guid userId);
+    Task<bool> SetUserActiveStatusAsync(Guid userId, bool isActive);
 }
