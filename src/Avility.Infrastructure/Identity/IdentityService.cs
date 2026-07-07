@@ -91,4 +91,17 @@ public sealed class IdentityService : IIdentityService
         var roles = await _userManager.GetRolesAsync(user);
         return (user.Email, roles.ToList());
     }
+    
+    public async Task<bool> SetUserActiveStatusAsync(Guid userId, bool isActive)
+    {
+         var user = await _userManager.FindByIdAsync(userId.ToString());
+         if (user is null)
+         {
+             return false;
+         }
+     
+         user.IsActive = isActive;
+         await _userManager.UpdateAsync(user);
+         return true;
+    }
 }
