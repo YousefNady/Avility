@@ -10,6 +10,8 @@ using Avility.Application.JobPostings.Dtos;
 using Avility.Application.JobPostings.Queries.GetById;
 using Avility.Application.JobPostings.Queries.GetMine;
 using Avility.Application.JobPostings.Queries.Search;
+using Avility.Application.JobApplications.Dtos;
+using Avility.Application.JobApplications.Queries.GetApplicants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -72,6 +74,15 @@ public sealed class JobPostingsController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<JobPostingDto>.SuccessResponse(result, "Job posting updated."));
+    }
+    
+    [Authorize(Roles = Roles.Company)]
+    [HttpGet("{jobPostingId:guid}/applicants")]
+    public async Task<ActionResult<ApiResponse<PagedResult<JobApplicationDto>>>> GetApplicants(
+        Guid jobPostingId, [FromQuery] string? status, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetApplicantsForJobPostingQuery(jobPostingId, status, pageNumber, pageSize), cancellationToken);
+        return Ok(ApiResponse<PagedResult<JobApplicationDto>>.SuccessResponse(result));
     }
 
     [Authorize(Roles = Roles.Company)]
