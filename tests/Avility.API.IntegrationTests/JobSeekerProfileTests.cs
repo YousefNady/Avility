@@ -105,4 +105,71 @@ public class JobSeekerProfileTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
     }
+
+    [Fact]
+    public async Task UploadResume_WithValidPdf_Succeeds()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", ValidProfilePayload);
+
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "resume.pdf");
+
+        var response = await _client.PostAsync("/api/v1/jobseekers/me/resume", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadResume_WithDisallowedType_ReturnsBadRequest()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", ValidProfilePayload);
+
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(new byte[] { 1, 2, 3 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "file", "resume.png");
+
+        var response = await _client.PostAsync("/api/v1/jobseekers/me/resume", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadThenDownloadResume_ReturnsSameContent()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", ValidProfilePayload);
+
+        var bytes = new byte[] { 0x25, 0x50, 0x44, 0x46, 0x01 };
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(bytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "resume.pdf");
+        await _client.PostAsync("/api/v1/jobseekers/me/resume", content);
+
+        var download = await _client.GetAsync("/api/v1/jobseekers/me/resume");
+        var downloaded = await download.Content.ReadAsByteArrayAsync();
+
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        Assert.Equal(bytes, downloaded);
+    }
+
+    [Fact]
+    public async Task DownloadResume_WithoutUpload_ReturnsNotFound()
+    {
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", ValidProfilePayload);
+
+        var response = await _client.GetAsync("/api/v1/jobseekers/me/resume");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
