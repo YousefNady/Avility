@@ -5,6 +5,7 @@ using Avility.Infrastructure.Identity;
 using Avility.Infrastructure.Persistence;
 using Avility.Infrastructure.Persistence.Interceptors;
 using Avility.Infrastructure.Services;
+using Avility.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IDateTime, DateTimeService>();
         services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
+        services.AddSingleton<IFileStorageService, LocalFileStorageService>();
         
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
             options.UseSqlite(connectionString)

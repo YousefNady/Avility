@@ -46,3 +46,6 @@ Thumbs.db
 
 ## Serilog
 logs/
+
+## File storage
+App_Data/

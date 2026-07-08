@@ -6,16 +6,32 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Configuration;
 
 namespace Avility.API.IntegrationTests;
 
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbName = $"AvilityTestDb-{Guid.NewGuid()}";
+    
+    // NEW: Temporary storage folder used by resume/file upload integration tests
+    private readonly string _storagePath =
+        Path.Combine(Path.GetTempPath(), $"AvilityTestStorage-{Guid.NewGuid()}");
+
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        
+        // NEW: Override file storage location so uploaded files are stored
+        // in a temporary folder during integration tests.
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["FileStorage:LocalRootPath"] = _storagePath
+            });
+        });
 
         builder.ConfigureServices(services =>
         {
