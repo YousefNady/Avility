@@ -6,6 +6,7 @@ using Avility.Infrastructure.Persistence;
 using Avility.Infrastructure.Persistence.Interceptors;
 using Avility.Infrastructure.Services;
 using Avility.Infrastructure.Storage;
+using Avility.Infrastructure.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -33,8 +34,12 @@ public static class DependencyInjection
         services.AddSingleton<IDateTime, DateTimeService>();
         services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
         services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+        
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
-        services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddSingleton<SmtpEmailSender>();
+        services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+        services.AddHostedService<QueuedHostedService>();
+        services.AddSingleton<IEmailSender, BackgroundEmailSender>();
         
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
             options.UseSqlite(connectionString)
