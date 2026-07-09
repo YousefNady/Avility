@@ -40,6 +40,8 @@ public static class DependencyInjection
         services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
         services.AddHostedService<QueuedHostedService>();
         services.AddSingleton<IEmailSender, BackgroundEmailSender>();
+        services.Configure<BackgroundJobsSettings>(configuration.GetSection(BackgroundJobsSettings.SectionName));
+        services.AddHostedService<RefreshTokenCleanupService>();
         
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
             options.UseSqlite(connectionString)
