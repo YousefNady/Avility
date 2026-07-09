@@ -1,6 +1,7 @@
 using Avility.Application.Common.Interfaces;
 using Avility.Application.Common.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Linq;
 
 namespace Avility.Infrastructure.Identity;
 
@@ -103,5 +104,33 @@ public sealed class IdentityService : IIdentityService
          user.IsActive = isActive;
          await _userManager.UpdateAsync(user);
          return true;
+    }
+    
+    public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            return null;
+        }
+
+        return await _userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    public async Task<(bool Succeeded, IReadOnlyList<string> Errors)> ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            return (false, new[] { "Invalid token or email." });
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+        {
+            return (false, result.Errors.Select(e => e.Description).ToList());
+        }
+
+        return (true, Array.Empty<string>());
     }
 }
