@@ -13,6 +13,7 @@ public sealed class Company : AuditableEntity
     public string? Industry { get; private set; }
     public string? WebsiteUrl { get; private set; }
     public string? LogoUrl { get; private set; }
+    public string? LogoStorageKey { get; private set; }
     public CompanySize CompanySize { get; private set; }
     public int FoundedYear { get; private set; }
     public CompanyVerificationStatus VerificationStatus { get; private set; }
@@ -92,6 +93,24 @@ public sealed class Company : AuditableEntity
     /// JobPosting.Publish() itself - see the note on that method for why.
     /// </summary>
     public bool CanPublishJobs() => VerificationStatus == CompanyVerificationStatus.Verified;
+    
+    /// <summary>Company action. Replacing an existing logo simply overwrites the storage key -
+    /// the old file's cleanup is the Application handler's responsibility (see UploadCompanyLogoCommandHandler).</summary>
+    public void SetLogo(string storageKey)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+        {
+            throw new DomainValidationException("Logo storage key is required.");
+        }
+
+        LogoStorageKey = storageKey;
+    }
+
+    /// <summary>Idempotent - removing a logo that doesn't exist is a no-op, matching Verify()/Reject().</summary>
+    public void RemoveLogo()
+    {
+        LogoStorageKey = null;
+    }
 
     private static void EnsureValidProfile(string companyName, int foundedYear, Location location)
     {

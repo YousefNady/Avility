@@ -7,6 +7,7 @@ public sealed record CompanyProfileDto(
     string? Industry,
     string? WebsiteUrl,
     string? LogoUrl,
+    bool HasLogo,
     string CompanySize,
     int FoundedYear,
     string VerificationStatus,

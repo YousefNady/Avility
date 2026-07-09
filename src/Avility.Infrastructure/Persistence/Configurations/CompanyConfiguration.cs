@@ -34,6 +34,9 @@ public sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         builder.Property(c => c.LogoUrl)
             .HasMaxLength(500);
+        
+        builder.Property(c => c.LogoStorageKey)
+            .HasMaxLength(300); // matches storage-key format: {Guid}{extension}
 
         // Enums stored as strings, per the convention already documented
         // on each enum type. Max length sized to the longest member name
