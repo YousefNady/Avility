@@ -1,5 +1,6 @@
 using Avility.Infrastructure.Persistence;
 using Avility.Infrastructure.Identity;
+using Avility.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -58,6 +59,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
 
             var sp = services.BuildServiceProvider();
+            
+            // NEW: Replace the real SMTP sender with an in-memory test
+            // double so integration tests never attempt a real network
+            // call, and so tests can inspect the reset token that only
+            // exists inside the "sent" email body.
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender, FakeEmailSender>();
 
             using var scope = sp.CreateScope();
 

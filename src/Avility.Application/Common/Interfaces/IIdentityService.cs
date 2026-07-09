@@ -9,4 +9,6 @@ public interface IIdentityService
     Task UpdateLastLoginAsync(Guid userId);
     Task<(string Email, IReadOnlyList<string> Roles)?> GetUserInfoAsync(Guid userId);
     Task<bool> SetUserActiveStatusAsync(Guid userId, bool isActive);
+    Task<string?> GeneratePasswordResetTokenAsync(string email);
+    Task<(bool Succeeded, IReadOnlyList<string> Errors)> ResetPasswordAsync(string email, string token, string newPassword);
 }

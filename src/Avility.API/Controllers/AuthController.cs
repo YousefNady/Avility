@@ -5,6 +5,8 @@ using Avility.Application.Auth.Commands.Login;
 using Avility.Application.Auth.Commands.Logout;
 using Avility.Application.Auth.Commands.RefreshToken;
 using Avility.Application.Auth.Commands.Register;
+using Avility.Application.Auth.Commands.ForgotPassword;
+using Avility.Application.Auth.Commands.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -50,5 +52,19 @@ public sealed class AuthController : ControllerBase
     {
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object>.SuccessResponse(new { }, "Logged out."));
+    }
+    
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword(ForgotPasswordCommand command, CancellationToken cancellationToken)
+    {
+        await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "If that email is registered, a reset token has been sent."));
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ResetPassword(ResetPasswordCommand command, CancellationToken cancellationToken)
+    {
+        await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Password reset successful."));
     }
 }

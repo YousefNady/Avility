@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Avility.Infrastructure.Email;
 
 namespace Avility.Infrastructure;
 
@@ -32,6 +33,8 @@ public static class DependencyInjection
         services.AddSingleton<IDateTime, DateTimeService>();
         services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
         services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+        services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
         
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
             options.UseSqlite(connectionString)
