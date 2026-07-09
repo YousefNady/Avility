@@ -26,7 +26,7 @@ public sealed class UploadJobSeekerResumeCommandHandler : IRequestHandler<Upload
         var jobSeeker = await _dbContext.JobSeekers.FirstOrDefaultAsync(js => js.UserId == userId, cancellationToken)
                         ?? throw new NotFoundException("JobSeeker profile", userId);
 
-        var storageKey = await _fileStorage.SaveAsync(request.Content, request.FileName, request.ContentType, cancellationToken);
+        var storageKey = await _fileStorage.SaveAsync(request.Content, request.FileName, request.ContentType, "resumes", cancellationToken);;
 
         jobSeeker.SetResumeUrl(storageKey);
         await _dbContext.SaveChangesAsync(cancellationToken);

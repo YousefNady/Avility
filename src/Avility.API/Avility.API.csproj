@@ -27,4 +27,8 @@
     <ProjectReference Include="..\Avility.Infrastructure\Avility.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="App_Data\" />
+  </ItemGroup>
+
 </Project>
