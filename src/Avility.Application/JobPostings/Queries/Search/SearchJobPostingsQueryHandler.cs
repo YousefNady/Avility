@@ -43,6 +43,29 @@ public sealed class SearchJobPostingsQueryHandler : IRequestHandler<SearchJobPos
 
         query = query.OrderByDescending(p => p.PublishedAt);
 
+        if (!string.IsNullOrWhiteSpace(request.DisabilityCategory) &&
+            Enum.TryParse<DisabilityCategory>(request.DisabilityCategory, out var category))
+        {
+            // SupportedDisabilityCategories is stored as a converted
+            // collection (comma-separated string column) - EF Core can't
+            // translate a LINQ filter against a converted collection
+            // property into SQL. The other filters above have already
+            // narrowed the result set at the DB level, so this one
+            // optional filter is applied in memory against what's left.
+            // Reasonable at this project's scale; a high-volume version
+            // would normalize this into its own join table instead.
+            var candidates = await query.ToListAsync(cancellationToken);
+            var filtered = candidates.Where(p => p.SupportedDisabilityCategories.Contains(category)).ToList();
+
+            var pagedItems = filtered
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
+
+            return new PagedResult<JobPostingDto>(
+                pagedItems.Select(p => p.ToDto()).ToList(), request.PageNumber, request.PageSize, filtered.Count);
+        }
+
         var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
 
         return new PagedResult<JobPostingDto>(
