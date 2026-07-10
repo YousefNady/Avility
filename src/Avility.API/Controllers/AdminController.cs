@@ -3,6 +3,7 @@ using Avility.API.Common.Responses;
 using Avility.Application.Admin.Commands.ActivateUser;
 using Avility.Application.Admin.Commands.CloseJobPosting;
 using Avility.Application.Admin.Commands.DeactivateUser;
+using Avility.Application.Admin.Queries.GetPlatformStatistics;
 using Avility.Application.Common.Constants;
 using Avility.Application.Common.Models;
 using Avility.Application.Companies.Dtos;
@@ -32,6 +33,13 @@ public sealed class AdminController : ControllerBase
     {
         var result = await _sender.Send(new GetCompaniesByVerificationStatusQuery(status, pageNumber, pageSize), cancellationToken);
         return Ok(ApiResponse<PagedResult<CompanyProfileDto>>.SuccessResponse(result));
+    }
+    
+    [HttpGet("statistics")]
+    public async Task<ActionResult<ApiResponse<PlatformStatisticsDto>>> GetStatistics(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetPlatformStatisticsQuery(), cancellationToken);
+        return Ok(ApiResponse<PlatformStatisticsDto>.SuccessResponse(result));
     }
 
     [HttpPost("users/{userId:guid}/deactivate")]
