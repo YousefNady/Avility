@@ -10,6 +10,7 @@ using Avility.Application.JobPostings.Dtos;
 using Avility.Application.JobPostings.Queries.GetById;
 using Avility.Application.JobPostings.Queries.GetMine;
 using Avility.Application.JobPostings.Queries.Search;
+using Avility.Application.JobPostings.Queries.GetRecommended;
 using Avility.Application.JobApplications.Dtos;
 using Avility.Application.JobApplications.Queries.GetApplicants;
 using MediatR;
@@ -41,6 +42,14 @@ public sealed class JobPostingsController : ControllerBase
     [Authorize(Roles = Roles.Company)]
     [HttpGet("mine")]
     public async Task<ActionResult<ApiResponse<PagedResult<JobPostingDto>>>> GetMine([FromQuery] GetMyJobPostingsQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<JobPostingDto>>.SuccessResponse(result));
+    }
+    
+    [Authorize(Roles = Roles.JobSeeker)]
+    [HttpGet("recommended")]
+    public async Task<ActionResult<ApiResponse<PagedResult<JobPostingDto>>>> GetRecommended([FromQuery] GetRecommendedJobPostingsQuery query, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<JobPostingDto>>.SuccessResponse(result));
