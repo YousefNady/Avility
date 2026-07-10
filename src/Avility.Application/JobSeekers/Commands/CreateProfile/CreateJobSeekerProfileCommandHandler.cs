@@ -1,6 +1,7 @@
 using Avility.Application.Common.Interfaces;
 using Avility.Application.JobSeekers.Dtos;
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 using Avility.Domain.ValueObjects;
 using FluentValidation;
 using FluentValidation.Results;
@@ -39,6 +40,13 @@ public sealed class CreateJobSeekerProfileCommandHandler : IRequestHandler<Creat
             request.YearsOfExperience,
             request.CurrentJobTitle,
             location);
+        
+        if (request.DisabilityCategories is not null || request.AccommodationNotes is not null)
+                {
+                    jobSeeker.UpdateAccessibilityInfo(
+                        request.DisabilityCategories?.Select(Enum.Parse<DisabilityCategory>).ToList(),
+                        request.AccommodationNotes);
+                }
 
         _dbContext.JobSeekers.Add(jobSeeker);
         await _dbContext.SaveChangesAsync(cancellationToken);

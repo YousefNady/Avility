@@ -1,3 +1,4 @@
+using Avility.Domain.Enums;
 using FluentValidation;
 
 namespace Avility.Application.JobSeekers.Commands.UpdateProfile;
@@ -15,6 +16,10 @@ public sealed class UpdateJobSeekerProfileCommandValidator : AbstractValidator<U
         RuleFor(x => x.City).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Headline).MaximumLength(150);
         RuleFor(x => x.Bio).MaximumLength(2000);
+        RuleForEach(x => x.DisabilityCategories)
+                    .Must(v => Enum.TryParse<DisabilityCategory>(v, out _))
+                    .WithMessage("Each disability category must be a valid value.");
+                RuleFor(x => x.AccommodationNotes).MaximumLength(1000);
 
         RuleFor(x => x.LinkedInUrl).Must(BeAValidUrl).When(x => !string.IsNullOrWhiteSpace(x.LinkedInUrl))
             .WithMessage("LinkedInUrl must be a valid URL.");

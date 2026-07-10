@@ -1,4 +1,5 @@
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 using Avility.Domain.Exceptions;
 using Avility.Domain.ValueObjects;
 using Xunit;
@@ -8,6 +9,14 @@ namespace Avility.Domain.UnitTests.Entities;
 public class JobSeekerTests
 {
     private static Location ValidLocation() => Location.Create("Egypt", "Giza", "Giza");
+    private static JobSeeker ValidJobSeeker() =>
+        JobSeeker.Create(
+            Guid.NewGuid(),
+            "Sara Ahmed",
+            "+201234567890",
+            3,
+            "Backend Developer",
+            ValidLocation());
 
     [Fact]
     public void Create_WithValidData_Succeeds()
@@ -63,4 +72,29 @@ public class JobSeekerTests
         Assert.Throws<DomainValidationException>(() =>
             seeker.UpdateProfile("Sara A.", null, null, "", 5, "Senior Backend Developer", ValidLocation(), null, null, null));
     }
+    
+    [Fact]
+        public void UpdateAccessibilityInfo_DeduplicatesCategories()
+        {
+            var jobSeeker = ValidJobSeeker();
+    
+            jobSeeker.UpdateAccessibilityInfo(
+                new[] { DisabilityCategory.Visual, DisabilityCategory.Visual, DisabilityCategory.Mobility },
+                "Prefers a screen-reader-friendly workflow.");
+    
+            Assert.Equal(2, jobSeeker.DisabilityCategories.Count);
+            Assert.Equal("Prefers a screen-reader-friendly workflow.", jobSeeker.AccommodationNotes);
+        }
+    
+    [Fact]
+        public void UpdateAccessibilityInfo_WithNulls_ClearsValues()
+        {
+            var jobSeeker = ValidJobSeeker();
+            jobSeeker.UpdateAccessibilityInfo(new[] { DisabilityCategory.Hearing }, "note");
+    
+            jobSeeker.UpdateAccessibilityInfo(null, null);
+    
+            Assert.Empty(jobSeeker.DisabilityCategories);
+            Assert.Null(jobSeeker.AccommodationNotes);
+        }
 }

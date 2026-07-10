@@ -37,5 +37,10 @@ public sealed class CreateJobPostingCommandValidator : AbstractValidator<CreateJ
             .Must(x => (x.SalaryMin is null && x.SalaryMax is null && x.SalaryCurrency is null) ||
                        (x.SalaryMin is not null && x.SalaryMax is not null && x.SalaryCurrency is not null))
             .WithMessage("SalaryMin, SalaryMax, and SalaryCurrency must all be provided together, or all omitted.");
+        
+        RuleForEach(x => x.SupportedDisabilityCategories)
+                    .Must(v => Enum.TryParse<DisabilityCategory>(v, out _))
+                    .WithMessage("Each disability category must be a valid value.");
+                RuleFor(x => x.AccommodationDetails).MaximumLength(2000);
     }
 }

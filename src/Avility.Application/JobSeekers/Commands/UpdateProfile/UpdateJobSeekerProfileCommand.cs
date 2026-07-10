@@ -15,4 +15,7 @@ public sealed record UpdateJobSeekerProfileCommand(
     string City,
     string? LinkedInUrl,
     string? GitHubUrl,
-    string? PortfolioUrl) : IRequest<JobSeekerProfileDto>;
+    string? PortfolioUrl,
+    IReadOnlyList<string>? DisabilityCategories = null,
+    string? AccommodationNotes = null) : IRequest<JobSeekerProfileDto>;
+

@@ -18,4 +18,6 @@ public sealed record JobPostingDto(
     DateTime? ApplicationDeadline,
     string Status,
     DateTime? PublishedAt,
-    DateTime? ClosedAt);
+    DateTime? ClosedAt,
+    IReadOnlyList<string> SupportedDisabilityCategories,
+    string? AccommodationDetails);

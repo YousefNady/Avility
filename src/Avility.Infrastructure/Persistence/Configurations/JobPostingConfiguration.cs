@@ -1,4 +1,5 @@
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -47,6 +48,14 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Property(jp => jp.ApplicationDeadline);
         builder.Property(jp => jp.PublishedAt);
         builder.Property(jp => jp.ClosedAt);
+        
+        builder.Property(jp => jp.SupportedDisabilityCategories)
+            .HasConversion(EnumListConverter.Create<DisabilityCategory>(), EnumListConverter.Comparer<DisabilityCategory>())
+            .HasMaxLength(200)
+            .HasColumnName("SupportedDisabilityCategories");
+
+        builder.Property(jp => jp.AccommodationDetails)
+            .HasMaxLength(2000);
 
         // Optional owned type - JobPosting.Location is nullable (a fully
         // remote job may have none). EF Core treats owned references as

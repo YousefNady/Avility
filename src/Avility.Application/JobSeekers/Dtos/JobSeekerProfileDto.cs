@@ -14,4 +14,6 @@ public sealed record JobSeekerProfileDto(
     string? PortfolioUrl,
     string Country,
     string Governorate,
-    string City);
+    string City,
+    IReadOnlyList<string> DisabilityCategories,
+    string? AccommodationNotes);

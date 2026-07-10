@@ -17,4 +17,6 @@ public sealed record UpdateJobPostingCommand(
     decimal? SalaryMin,
     decimal? SalaryMax,
     string? SalaryCurrency,
-    DateTime? ApplicationDeadline) : IRequest<JobPostingDto>;
+    DateTime? ApplicationDeadline,
+    IReadOnlyList<string>? SupportedDisabilityCategories = null,
+    string? AccommodationDetails = null) : IRequest<JobPostingDto>;

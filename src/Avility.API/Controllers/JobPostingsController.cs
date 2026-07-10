@@ -70,7 +70,8 @@ public sealed class JobPostingsController : ControllerBase
             jobPostingId, request.Title, request.Description, request.Requirements,
             request.EmploymentType, request.ExperienceLevel, request.IsRemote,
             request.Country, request.Governorate, request.City,
-            request.SalaryMin, request.SalaryMax, request.SalaryCurrency, request.ApplicationDeadline);
+            request.SalaryMin, request.SalaryMax, request.SalaryCurrency, request.ApplicationDeadline,
+            request.SupportedDisabilityCategories, request.AccommodationDetails);
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<JobPostingDto>.SuccessResponse(result, "Job posting updated."));
@@ -115,4 +116,6 @@ public sealed record UpdateJobPostingRequest(
     decimal? SalaryMin,
     decimal? SalaryMax,
     string? SalaryCurrency,
-    DateTime? ApplicationDeadline);
+    DateTime? ApplicationDeadline,
+    IReadOnlyList<string>? SupportedDisabilityCategories = null,
+    string? AccommodationDetails = null);

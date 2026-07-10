@@ -22,5 +22,7 @@ public static class JobPostingMappingExtensions
         entity.ApplicationDeadline,
         entity.Status.ToString(),
         entity.PublishedAt,
-        entity.ClosedAt);
+        entity.ClosedAt,
+        entity.SupportedDisabilityCategories.Select(c => c.ToString()).ToList(),
+        entity.AccommodationDetails);
 }

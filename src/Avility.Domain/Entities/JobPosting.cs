@@ -25,6 +25,8 @@ public sealed class JobPosting : AuditableEntity
     public JobPostingStatus Status { get; private set; }
     public DateTime? PublishedAt { get; private set; }
     public DateTime? ClosedAt { get; private set; }
+    public IReadOnlyList<DisabilityCategory> SupportedDisabilityCategories { get; private set; } = Array.Empty<DisabilityCategory>();
+    public string? AccommodationDetails { get; private set; }
 
     private JobPosting()
     {
@@ -109,6 +111,20 @@ public sealed class JobPosting : AuditableEntity
         Location = location;
         Salary = salary;
         ApplicationDeadline = applicationDeadline;
+    }
+    
+    /// <summary>
+    /// Which accommodation categories this posting/workplace supports.
+    /// Kept separate from UpdateDetails for the same reason as
+    /// JobSeeker's equivalent method. Still gated by EnsureEditable() - a
+    /// closed posting shouldn't be edited at all, accommodation info
+    /// included.
+    /// </summary>
+    public void UpdateAccommodations(IReadOnlyList<DisabilityCategory>? supportedDisabilityCategories, string? accommodationDetails)
+    {
+        EnsureEditable();
+        SupportedDisabilityCategories = supportedDisabilityCategories?.Distinct().ToArray() ?? Array.Empty<DisabilityCategory>();
+        AccommodationDetails = accommodationDetails?.Trim();
     }
 
     /// <summary>

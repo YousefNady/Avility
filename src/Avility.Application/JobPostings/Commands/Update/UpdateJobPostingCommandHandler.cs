@@ -47,6 +47,13 @@ public sealed class UpdateJobPostingCommandHandler : IRequestHandler<UpdateJobPo
             location,
             salary,
             request.ApplicationDeadline);
+        
+        if (request.SupportedDisabilityCategories is not null || request.AccommodationDetails is not null)
+                {
+                    posting.UpdateAccommodations(
+                        request.SupportedDisabilityCategories?.Select(Enum.Parse<DisabilityCategory>).ToList(),
+                        request.AccommodationDetails);
+                }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

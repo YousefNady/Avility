@@ -1,6 +1,7 @@
 using Avility.Domain.Common;
 using Avility.Domain.Exceptions;
 using Avility.Domain.ValueObjects;
+using Avility.Domain.Enums;
 
 namespace Avility.Domain.Entities;
 
@@ -24,6 +25,8 @@ public sealed class JobSeeker : AuditableEntity
     public string? GitHubUrl { get; private set; }
     public string? PortfolioUrl { get; private set; }
     public Location Location { get; private set; } = null!;
+    public IReadOnlyList<DisabilityCategory> DisabilityCategories { get; private set; } = Array.Empty<DisabilityCategory>();
+    public string? AccommodationNotes { get; private set; }
 
     /// <summary>EF Core requires a parameterless constructor for materialization.</summary>
     private JobSeeker()
@@ -98,6 +101,18 @@ public sealed class JobSeeker : AuditableEntity
         }
 
         ResumeUrl = resumeUrl.Trim();
+    }
+    
+    /// <summary>
+    /// Self-disclosed and optional, kept separate from UpdateProfile so a
+    /// JobSeeker can change this without resubmitting every other field.
+    /// No invariant beyond de-duplication - there's no wrong combination
+    /// of disability categories to disclose.
+    /// </summary>
+    public void UpdateAccessibilityInfo(IReadOnlyList<DisabilityCategory>? disabilityCategories, string? accommodationNotes)
+    {
+        DisabilityCategories = disabilityCategories?.Distinct().ToArray() ?? Array.Empty<DisabilityCategory>();
+        AccommodationNotes = accommodationNotes?.Trim();
     }
 
     /// <summary>

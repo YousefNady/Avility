@@ -18,5 +18,7 @@ public static class JobSeekerMappingExtensions
         entity.PortfolioUrl,
         entity.Location.Country,
         entity.Location.Governorate,
-        entity.Location.City);
+        entity.Location.City,
+        entity.DisabilityCategories.Select(c => c.ToString()).ToList(),
+        entity.AccommodationNotes);
 }
