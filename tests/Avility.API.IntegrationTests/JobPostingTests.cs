@@ -177,4 +177,42 @@ public class JobPostingTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Single(page!.Data!.Items);
     }
+    
+    [Fact]
+    public async Task Search_FilteredByDisabilityCategory_ReturnsOnlyMatchingPostings()
+    {
+        var (token, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var accessible = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Accessible Support Engineer",
+            description = "Remote role with full accommodation support",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true,
+            supportedDisabilityCategories = new[] { "Visual" },
+            accommodationDetails = "Screen-reader compatible tooling provided."
+        });
+        var accessibleId = (await accessible.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{accessibleId}/publish", null);
+
+        var other = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Standard Engineer Role",
+            description = "No accommodation info provided",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true
+        });
+        var otherId = (await other.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{otherId}/publish", null);
+
+        _client.DefaultRequestHeaders.Authorization = null;
+        var search = await _client.GetAsync("/api/v1/jobpostings?disabilityCategory=Visual");
+        var page = (await search.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+
+        Assert.Contains(page.Items, p => p.Id == accessibleId);
+        Assert.DoesNotContain(page.Items, p => p.Id == otherId);
+    }
 }
