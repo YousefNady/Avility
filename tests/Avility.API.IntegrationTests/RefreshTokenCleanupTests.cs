@@ -40,7 +40,8 @@ public class RefreshTokenCleanupTests : IClassFixture<CustomWebApplicationFactor
             .Single();
 
         var removedCount = await cleanupService.CleanupExpiredTokensAsync(CancellationToken.None);
-
+        
+        Console.WriteLine($"Removed Count = {removedCount}");
         Assert.True(removedCount >= 1);
         Assert.False(await dbContext.RefreshTokens.AnyAsync(t => t.Id == expiredToken.Id));
         Assert.True(await dbContext.RefreshTokens.AnyAsync(t => t.Id == activeToken.Id));
