@@ -1,6 +1,7 @@
 using Avility.Application.Common.Interfaces;
 using Avility.Application.Common.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
 namespace Avility.Infrastructure.Identity;
@@ -104,6 +105,13 @@ public sealed class IdentityService : IIdentityService
          user.IsActive = isActive;
          await _userManager.UpdateAsync(user);
          return true;
+    }
+    
+    public async Task<(int Active, int Inactive)> GetUserCountsAsync()
+    {
+        var active = await _userManager.Users.CountAsync(u => u.IsActive);
+        var inactive = await _userManager.Users.CountAsync(u => !u.IsActive);
+        return (active, inactive);
     }
     
     public async Task<string?> GeneratePasswordResetTokenAsync(string email)
