@@ -22,6 +22,7 @@ public interface IApplicationDbContext
     DbSet<JobApplication> JobApplications { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Message> Messages { get; }
+    DbSet<Resource> Resources { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
