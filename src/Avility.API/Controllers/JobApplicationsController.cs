@@ -9,6 +9,9 @@ using Avility.Application.JobApplications.Commands.Reject;
 using Avility.Application.JobApplications.Commands.Withdraw;
 using Avility.Application.JobApplications.Dtos;
 using Avility.Application.JobApplications.Queries.GetMine;
+using Avility.Application.Messages.Commands.SendMessage;
+using Avility.Application.Messages.Dtos;
+using Avility.Application.Messages.Queries.GetThread;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,4 +77,23 @@ public sealed class JobApplicationsController : ControllerBase
         var result = await _sender.Send(new RejectJobApplicationCommand(jobApplicationId), cancellationToken);
         return Ok(ApiResponse<JobApplicationDto>.SuccessResponse(result, "Application rejected."));
     }
+    
+    [Authorize]
+    [HttpPost("{jobApplicationId:guid}/messages")]
+    public async Task<ActionResult<ApiResponse<MessageDto>>> SendMessage(Guid jobApplicationId, SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new SendMessageCommand(jobApplicationId, request.Body), cancellationToken);
+        return Ok(ApiResponse<MessageDto>.SuccessResponse(result, "Message sent."));
+    }
+
+    [Authorize]
+    [HttpGet("{jobApplicationId:guid}/messages")]
+    public async Task<ActionResult<ApiResponse<PagedResult<MessageDto>>>> GetThread(
+        Guid jobApplicationId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetThreadQuery(jobApplicationId, pageNumber, pageSize), cancellationToken);
+        return Ok(ApiResponse<PagedResult<MessageDto>>.SuccessResponse(result));
+    }
 }
+
+public sealed record SendMessageRequest(string Body);
