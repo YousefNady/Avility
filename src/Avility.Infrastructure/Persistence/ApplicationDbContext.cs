@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Resource> Resources => Set<Resource>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
