@@ -2,6 +2,7 @@ using Avility.Application.Common.Exceptions;
 using Avility.Application.Common.Interfaces;
 using Avility.Application.JobSeekers.Dtos;
 using Avility.Domain.ValueObjects;
+using Avility.Domain.Enums; 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,13 @@ public sealed class UpdateJobSeekerProfileCommandHandler : IRequestHandler<Updat
             request.LinkedInUrl,
             request.GitHubUrl,
             request.PortfolioUrl);
+        
+        if (request.DisabilityCategories is not null || request.AccommodationNotes is not null)
+                {
+                    jobSeeker.UpdateAccessibilityInfo(
+                        request.DisabilityCategories?.Select(Enum.Parse<DisabilityCategory>).ToList(),
+                        request.AccommodationNotes);
+                }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

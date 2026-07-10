@@ -10,4 +10,6 @@ public sealed record CreateJobSeekerProfileCommand(
     string CurrentJobTitle,
     string Country,
     string Governorate,
-    string City) : IRequest<JobSeekerProfileDto>;
+    string City,
+    IReadOnlyList<string>? DisabilityCategories = null,
+    string? AccommodationNotes = null) : IRequest<JobSeekerProfileDto>;

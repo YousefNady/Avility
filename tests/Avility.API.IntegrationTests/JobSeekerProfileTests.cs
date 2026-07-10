@@ -172,4 +172,33 @@ public class JobSeekerProfileTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+    
+    [Fact]
+        public async Task CreateProfile_WithAccessibilityInfo_RoundTrips()
+        {
+            var email = $"js-{Guid.NewGuid()}@test.com";
+            var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Password123", role = "JobSeeker" });
+            var token = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    
+            await _client.PostAsJsonAsync("/api/v1/jobseekers/me", new
+            {
+                fullName = "Sara Ahmed",
+                phoneNumber = "+201234567890",
+                yearsOfExperience = 3,
+                currentJobTitle = "Backend Developer",
+                country = "Egypt",
+                governorate = "Giza",
+                city = "Giza",
+                disabilityCategories = new[] { "Visual", "Mobility" },
+                accommodationNotes = "Needs a screen reader-compatible workflow."
+            });
+    
+            var getMe = await _client.GetAsync("/api/v1/jobseekers/me");
+            var profile = (await getMe.Content.ReadFromJsonAsync<ApiResponse<Avility.Application.JobSeekers.Dtos.JobSeekerProfileDto>>())!.Data!;
+    
+            Assert.Equal(2, profile.DisabilityCategories.Count);
+            Assert.Contains("Visual", profile.DisabilityCategories);
+            Assert.Equal("Needs a screen reader-compatible workflow.", profile.AccommodationNotes);
+        }
 }

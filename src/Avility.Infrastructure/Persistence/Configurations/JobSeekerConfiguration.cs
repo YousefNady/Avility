@@ -1,4 +1,5 @@
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 using Avility.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,7 +14,7 @@ public sealed class JobSeekerConfiguration : IEntityTypeConfiguration<JobSeeker>
         // documents intent and survives if the DbSet property is ever
         // renamed.
         builder.ToTable("JobSeekers");
-
+    
         builder.HasKey(js => js.Id);
 
         builder.Property(js => js.UserId)
@@ -56,6 +57,14 @@ public sealed class JobSeekerConfiguration : IEntityTypeConfiguration<JobSeeker>
 
         builder.Property(js => js.PortfolioUrl)
             .HasMaxLength(300);
+        
+        builder.Property(js => js.DisabilityCategories)
+            .HasConversion(EnumListConverter.Create<DisabilityCategory>(), EnumListConverter.Comparer<DisabilityCategory>())
+            .HasMaxLength(200)
+            .HasColumnName("DisabilityCategories");
+
+        builder.Property(js => js.AccommodationNotes)
+            .HasMaxLength(1000);
 
         // Owned type, table-split into JobSeekers via column prefixes -
         // Location has no identity of its own, so it doesn't get a

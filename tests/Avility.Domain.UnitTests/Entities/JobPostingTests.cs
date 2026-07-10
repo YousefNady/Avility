@@ -97,4 +97,14 @@ public class JobPostingTests
         Assert.True(posting.CanAcceptApplications(DateTime.UtcNow));
         Assert.False(posting.CanAcceptApplications(DateTime.UtcNow.AddDays(10)));
     }
+    
+    [Fact]
+        public void UpdateAccommodations_OnClosedPosting_Throws()
+        {
+            var posting = ValidPosting();
+            posting.Close(DateTime.UtcNow);
+    
+            Assert.Throws<DomainValidationException>(() =>
+                posting.UpdateAccommodations(new[] { DisabilityCategory.Mobility }, "Wheelchair accessible office"));
+        }
 }
