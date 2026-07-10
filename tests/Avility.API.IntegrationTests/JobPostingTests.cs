@@ -215,4 +215,57 @@ public class JobPostingTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Contains(page.Items, p => p.Id == accessibleId);
         Assert.DoesNotContain(page.Items, p => p.Id == otherId);
     }
+    
+    [Fact]
+    public async Task GetRecommended_RanksOverlappingPostingFirst()
+    {
+        var (companyToken, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", companyToken);
+
+        var matching = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Accessible Support Engineer",
+            description = "Remote role with full accommodation support",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true,
+            supportedDisabilityCategories = new[] { "Visual" }
+        });
+        var matchingId = (await matching.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{matchingId}/publish", null);
+
+        var nonMatching = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Standard Engineer Role",
+            description = "No accommodation info provided",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true
+        });
+        var nonMatchingId = (await nonMatching.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{nonMatchingId}/publish", null);
+
+        var seekerEmail = $"js-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email = seekerEmail, password = "Password123", role = "JobSeeker" });
+        var seekerToken = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seekerToken);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", new
+        {
+            fullName = "Test Seeker",
+            phoneNumber = "+201234567890",
+            yearsOfExperience = 2,
+            currentJobTitle = "Tester",
+            country = "Egypt",
+            governorate = "Giza",
+            city = "Giza",
+            disabilityCategories = new[] { "Visual" }
+        });
+
+        var recommended = await _client.GetAsync("/api/v1/jobpostings/recommended");
+        var page = (await recommended.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+
+        Assert.Contains(page.Items, p => p.Id == matchingId);
+        Assert.Contains(page.Items, p => p.Id == nonMatchingId);
+        Assert.True(page.Items.ToList().FindIndex(p => p.Id == matchingId) < page.Items.ToList().FindIndex(p => p.Id == nonMatchingId));
+    }
 }
