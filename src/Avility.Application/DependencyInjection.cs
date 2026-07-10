@@ -1,5 +1,7 @@
 using System.Reflection;
 using Avility.Application.Common.Behaviors;
+using Avility.Application.Common.Interfaces;
+using Avility.Application.Common.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,8 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehaviour<,>));
 
         services.AddScoped<Auth.TokenIssuer>();
+        
+        services.AddScoped<IJobApplicationAccessGuard, JobApplicationAccessGuard>();
 
         return services;
     }
