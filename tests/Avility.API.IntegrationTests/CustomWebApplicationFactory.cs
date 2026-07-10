@@ -1,6 +1,7 @@
 using Avility.Infrastructure.Persistence;
 using Avility.Infrastructure.Identity;
 using Avility.Application.Common.Interfaces;
+using Avility.Application.Messages;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -66,6 +67,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // exists inside the "sent" email body.
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender, FakeEmailSender>();
+            
+            services.RemoveAll<IMessageNotifier>();
+            services.AddSingleton<IMessageNotifier, FakeMessageNotifier>();
 
             using var scope = sp.CreateScope();
 

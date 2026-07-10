@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using Avility.API.Middleware;
+using Avility.API.Hubs;
 using Avility.Application;
+using Avility.Application.Messages;
 using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
 using Microsoft.AspNetCore.RateLimiting;
@@ -19,6 +21,9 @@ builder.Services.AddControllers();
 builder.Services.AddDataProtection();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IMessageNotifier, SignalRMessageNotifier>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -66,6 +71,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
+app.MapHub<MessagesHub>("/hubs/messages");
 app.MapHealthChecks("/health");
 
 app.Run();

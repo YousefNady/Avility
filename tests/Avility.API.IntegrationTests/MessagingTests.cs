@@ -122,4 +122,18 @@ public class MessagingTests : IClassFixture<CustomWebApplicationFactory>
         var read = await _client.GetAsync($"/api/v1/jobapplications/{applicationId}/messages");
         Assert.Equal(HttpStatusCode.Forbidden, read.StatusCode);
     }
+    
+    [Fact]
+    public async Task SendMessage_ViaRest_InvokesMessageNotifier()
+    {
+        FakeMessageNotifier.Clear();
+        var (companyToken, postingId) = await SetUpVerifiedCompanyWithPublishedPostingAsync();
+        var seekerToken = await AuthTokenAsync($"js-{Guid.NewGuid()}@test.com", "JobSeeker");
+        var applicationId = await ApplyAsJobSeekerAsync(seekerToken, postingId);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seekerToken);
+        await _client.PostAsJsonAsync($"/api/v1/jobapplications/{applicationId}/messages", new { body = "Hello via REST" });
+
+        Assert.Contains(FakeMessageNotifier.Notified, m => m.JobApplicationId == applicationId && m.Body == "Hello via REST");
+    }
 }

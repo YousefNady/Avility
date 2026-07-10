@@ -1,9 +1,7 @@
-﻿using Avility.Application.Common.Exceptions;
-using Avility.Application.Common.Extensions;
+﻿using Avility.Application.Common.Extensions;
 using Avility.Application.Common.Interfaces;
 using Avility.Application.Common.Models;
 using Avility.Application.Messages.Dtos;
-using Avility.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,21 +11,20 @@ public sealed class GetThreadQueryHandler : IRequestHandler<GetThreadQuery, Page
 {
     private readonly IApplicationDbContext _dbContext;
     private readonly ICurrentUserService _currentUser;
+    private readonly IJobApplicationAccessGuard _accessGuard;
 
-    public GetThreadQueryHandler(IApplicationDbContext dbContext, ICurrentUserService currentUser)
+    public GetThreadQueryHandler(IApplicationDbContext dbContext, ICurrentUserService currentUser, IJobApplicationAccessGuard accessGuard)
     {
         _dbContext = dbContext;
         _currentUser = currentUser;
+        _accessGuard = accessGuard;
     }
 
     public async Task<PagedResult<MessageDto>> Handle(GetThreadQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.UserId ?? throw new InvalidOperationException("User is not authenticated.");
 
-        var application = await _dbContext.JobApplications.FirstOrDefaultAsync(a => a.Id == request.JobApplicationId, cancellationToken)
-            ?? throw new NotFoundException("JobApplication", request.JobApplicationId);
-
-        await EnsureParticipantAsync(application, userId, cancellationToken);
+        await _accessGuard.EnsureParticipantAsync(request.JobApplicationId, userId, cancellationToken);
 
         // Chronological, oldest-first - a chat thread reads top-to-bottom,
         // unlike the "newest first" convention used by browsing lists
@@ -41,23 +38,5 @@ public sealed class GetThreadQueryHandler : IRequestHandler<GetThreadQuery, Page
 
         return new PagedResult<MessageDto>(
             page.Items.Select(m => m.ToDto()).ToList(), page.PageNumber, page.PageSize, page.TotalCount);
-    }
-
-    private async Task EnsureParticipantAsync(JobApplication application, Guid userId, CancellationToken cancellationToken)
-    {
-        var jobSeeker = await _dbContext.JobSeekers.FirstOrDefaultAsync(js => js.Id == application.JobSeekerId, cancellationToken);
-        if (jobSeeker?.UserId == userId)
-        {
-            return;
-        }
-
-        var posting = await _dbContext.JobPostings.FirstOrDefaultAsync(p => p.Id == application.JobPostingId, cancellationToken);
-        var company = posting is null ? null : await _dbContext.Companies.FirstOrDefaultAsync(c => c.Id == posting.CompanyId, cancellationToken);
-        if (company?.UserId == userId)
-        {
-            return;
-        }
-
-        throw new ForbiddenAccessException();
     }
 }

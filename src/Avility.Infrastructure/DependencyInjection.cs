@@ -84,6 +84,27 @@ public static class DependencyInjection
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
+                
+                options.Events = new JwtBearerEvents
+                {
+                    // Browsers can't attach an Authorization header to a
+                    // WebSocket upgrade request, so SignalR's documented
+                    // workaround is a query-string token. Accepted only
+                    // for the hub path - every other endpoint still
+                    // requires the header exactly as before.
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/messages"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         return services;
