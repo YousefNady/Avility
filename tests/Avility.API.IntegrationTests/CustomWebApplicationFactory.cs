@@ -25,6 +25,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         
+        builder.ConfigureAppConfiguration((_, configBuilder) =>
+        {
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Cors:AllowedOrigins:0"] = "http://localhost:5173"
+            });
+        });
+        
         // NEW: Override file storage location so uploaded files are stored
         // in a temporary folder during integration tests.
         builder.ConfigureAppConfiguration((_, config) =>
