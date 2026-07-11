@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Avility.API.Middleware;
 using Avility.API.Hubs;
 using Avility.API.HealthChecks;
+using Avility.API.Common.Responses;
 using Avility.Application;
 using Avility.Application.Messages;
 using Avility.Infrastructure;
@@ -11,7 +12,7 @@ using System.Threading.RateLimiting;
 using System.IO.Compression;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi.Models;
-
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
@@ -44,7 +45,28 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // [ApiController]'s default invalid-ModelState response bypasses
+        // ApiResponse<T> entirely (malformed JSON, bad route/query
+        // binding) - this runs before the controller action, so
+        // GlobalExceptionHandler and FluentValidation never see it.
+        // Unify it with every other validation failure in the API.
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(kvp => kvp.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
+
+            return new BadRequestObjectResult(
+                ApiResponse<object>.FailureResponse("One or more validation errors occurred.", errors));
+        };
+    });
+
+
 builder.Services.AddDataProtection();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();

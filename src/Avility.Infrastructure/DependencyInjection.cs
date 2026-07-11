@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Avility.Infrastructure.Email;
 
@@ -56,7 +57,16 @@ public static class DependencyInjection
 
         AddIdentity(services);
         
-        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .Validate(
+                settings => !string.IsNullOrWhiteSpace(settings.Secret)
+                            && settings.Secret.Length >= 32
+                            && settings.Secret != "REPLACE_WITH_USER_SECRET_MIN_32_CHARS",
+                "Jwt:Secret must be overridden (via user secrets or an environment variable) with a real value at least 32 characters long - the committed appsettings.json value is a placeholder only.")
+            .ValidateOnStart();
+        
+        
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IIdentityService, IdentityService>();
  

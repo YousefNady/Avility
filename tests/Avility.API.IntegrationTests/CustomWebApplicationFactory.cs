@@ -25,13 +25,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         
-        builder.ConfigureAppConfiguration((_, configBuilder) =>
-        {
-            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Cors:AllowedOrigins:0"] = "http://localhost:5173"
-            });
-        });
+        builder.UseSetting("Cors:AllowedOrigins:0", "http://localhost:5173");
+        builder.UseSetting("Jwt:Secret", "Testing-Only-Jwt-Secret-Value-Never-Used-In-Prod-0123456789");
         
         // NEW: Override file storage location so uploaded files are stored
         // in a temporary folder during integration tests.
