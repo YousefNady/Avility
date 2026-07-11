@@ -6,6 +6,8 @@ using Avility.Application;
 using Avility.Application.Messages;
 using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
+using System.IdentityModel.Tokens.Jwt;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
@@ -75,6 +77,30 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.Window = TimeSpan.FromMinutes(1);
         limiterOptions.QueueLimit = 0;
     });
+
+    // Baseline protection for every endpoint, not just /auth - applies in
+    // addition to any named policy, so "auth" still enforces its own
+    // stricter limit on top of this one. Partitioned by authenticated
+    // user ID when available, falling back to remote IP for anonymous
+    // callers, so one user/IP can't consume everyone else's share.
+    // Generous in Testing deliberately: a tight limit here would apply
+    // to every integration test host and start rejecting the existing
+    // test suite's normal multi-request flows, not just abusive traffic.
+    var globalPermitLimit = builder.Environment.IsEnvironment("Testing") ? 100_000 : 200;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var partitionKey = httpContext.User.Identity?.IsAuthenticated == true
+            ? httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? "anonymous"
+            : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = globalPermitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
