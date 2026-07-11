@@ -32,7 +32,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 ApiResponse<object>.FailureResponse(domainEx.Message)),
 
             _ => (StatusCodes.Status500InternalServerError,
-                ApiResponse<object>.FailureResponse("An unexpected error occurred."))
+                ApiResponse<object>.FailureResponse(BuildUnexpectedErrorMessage(httpContext)))
         };
 
         if (statusCode == StatusCodes.Status500InternalServerError)
@@ -50,4 +50,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         ex.Errors
             .GroupBy(e => e.PropertyName)
             .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+    
+    private static string BuildUnexpectedErrorMessage(HttpContext httpContext)
+        {
+            var correlationId = httpContext.Items.TryGetValue(CorrelationIdMiddleware.HeaderName, out var value) ? value as string : null;
+            return correlationId is null
+                ? "An unexpected error occurred."
+                : $"An unexpected error occurred. Reference: {correlationId}";
+        }
 }
