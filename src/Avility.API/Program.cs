@@ -1,11 +1,13 @@
 using Asp.Versioning;
 using Avility.API.Middleware;
 using Avility.API.Hubs;
+using Avility.API.HealthChecks;
 using Avility.Application;
 using Avility.Application.Messages;
 using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Events;
 
@@ -54,7 +56,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>();
+    .AddDbContextCheck<ApplicationDbContext>("database", tags: new[] { "ready" })
+    .AddCheck<FileStorageHealthCheck>("file-storage", tags: new[] { "ready" });
 
 builder.Services.AddApiVersioning(options =>
 {
@@ -109,7 +112,29 @@ app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHub<MessagesHub>("/hubs/messages").RequireCors("Frontend");
-app.MapHealthChecks("/health");
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonAsync
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    // No dependency checks - only confirms the process is up and able to
+    // route a request. An orchestrator restarts the container on
+    // liveness failure, so this must never depend on the database.
+    Predicate = _ => false,
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonAsync
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    // Only runs checks tagged "ready" - can this instance actually serve
+    // traffic right now? A load balancer stops routing to an instance
+    // that fails readiness, without restarting it (unlike liveness).
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonAsync
+});
 
 app.Run();
 
