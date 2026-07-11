@@ -8,6 +8,10 @@ using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
 using System.IdentityModel.Tokens.Jwt;
 using System.Threading.RateLimiting;
+using System.IO.Compression;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.OpenApi.Models;
+
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
@@ -24,6 +28,21 @@ builder.Host.UseSerilog((context, configuration) => configuration
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {CorrelationId} {Message:lj}{NewLine}{Exception}"));
 
 // Add services to the container.
+
+builder.Services.AddResponseCompression(options =>
+{
+    // Safe here specifically because no response reflects a secret
+    // alongside attacker-controlled input (see BREACH attack) - this API
+    // only returns JWTs from login/register/refresh, never mixed with
+    // arbitrary user-supplied content in the same payload.
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/json" });
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
 builder.Services.AddControllers();
 builder.Services.AddDataProtection();
@@ -55,7 +74,40 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Avility API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>("database", tags: new[] { "ready" })
@@ -113,6 +165,7 @@ if (allowedOrigins.Length == 0 && !app.Environment.IsDevelopment())
         app.Environment.EnvironmentName);
 }
 
+app.UseResponseCompression();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseSerilogRequestLogging();
