@@ -25,6 +25,24 @@ builder.Services.AddApplication();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IMessageNotifier, SignalRMessageNotifier>();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            // SignalR's browser client sends withCredentials: true by
+            // default on its negotiate/connection requests, which
+            // requires AllowCredentials() here - and browsers reject
+            // AllowAnyOrigin() combined with AllowCredentials(), which is
+            // exactly why AllowedOrigins has to be an explicit list.
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -55,6 +73,13 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (allowedOrigins.Length == 0 && !app.Environment.IsDevelopment())
+{
+    app.Logger.LogWarning(
+        "Cors:AllowedOrigins is empty - no browser-based frontend will be able to call this API in {Environment}.",
+        app.Environment.EnvironmentName);
+}
+
 app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
@@ -66,12 +91,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("Frontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-app.MapHub<MessagesHub>("/hubs/messages");
+app.MapHub<MessagesHub>("/hubs/messages").RequireCors("Frontend");
 app.MapHealthChecks("/health");
 
 app.Run();
