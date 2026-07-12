@@ -1,65 +1,28 @@
 name: Build, test, and deploy to MonsterASP.NET
-
 on:
   push:
     branches: [development]
-
 jobs:
   build_test_deploy:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-
       - name: Restore
         run: dotnet restore
-
       - name: Build
         run: dotnet build --configuration Release --no-restore
-
       - name: Test
         run: dotnet test --configuration Release --no-build
-
       - name: Publish API
-        shell: pwsh
-        run: |
-          dotnet publish src/Avility.API/Avility.API.csproj `
-            --configuration Release `
-            --runtime win-x86 `
-            --self-contained false `
-            --output "$env:GITHUB_WORKSPACE\publish"
-
+        run: dotnet publish src/Avility.API/Avility.API.csproj --configuration Release --output ./publish --runtime win-x86 --self-contained false
       - name: Verify publish output
-        shell: pwsh
         run: |
-          Write-Host "Current Directory:"
-          Get-Location
-
-          Write-Host ""
-          Write-Host "Workspace:"
-          Write-Host $env:GITHUB_WORKSPACE
-
-          Write-Host ""
-          Write-Host "Workspace contents:"
-          Get-ChildItem $env:GITHUB_WORKSPACE
-
-          Write-Host ""
-          Write-Host "Checking publish folder..."
-
-          if (Test-Path "$env:GITHUB_WORKSPACE\publish") {
-            Write-Host "Publish folder FOUND"
-            Get-ChildItem "$env:GITHUB_WORKSPACE\publish" -Recurse
-          }
-          else {
-            Write-Host "Publish folder NOT FOUND"
-            exit 1
-          }
-
+          Write-Host "Workspace: ${{ github.workspace }}"
+          Get-ChildItem -Path ./publish -Recurse | Select-Object -First 20
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
         with:
