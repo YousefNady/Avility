@@ -7,6 +7,7 @@ using Avility.Application;
 using Avility.Application.Messages;
 using Avility.Infrastructure;
 using Avility.Infrastructure.Persistence;
+using Avility.Infrastructure.Persistence.Seed;
 using System.IdentityModel.Tokens.Jwt;
 using System.Threading.RateLimiting;
 using System.IO.Compression;
@@ -179,6 +180,11 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    await AdminSeeder.SeedAsync(scope.ServiceProvider);
+}
 
 if (allowedOrigins.Length == 0 && !app.Environment.IsDevelopment())
 {
