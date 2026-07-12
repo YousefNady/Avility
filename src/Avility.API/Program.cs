@@ -97,38 +97,33 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Avility API",
-        Version = "v1"
+        Version = "v1",
+        Description = "Backend API for Avility, an inclusive recruitment platform connecting job seekers with disabilities to accessibility-committed employers.",
+        Contact = new OpenApiContact
+        {
+            Name = "Source on GitHub",
+            Url = new Uri("https://github.com/YousefNady/Avility")
+        }
     });
 
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    var jwtScheme = new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
-        In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
-    });
-
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter the JWT access token from /api/v1/auth/login, without the 'Bearer ' prefix."
+    };
+    options.AddSecurityDefinition("Bearer", jwtScheme);
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, Array.Empty<string>() }
     });
 });
 
@@ -200,7 +195,8 @@ app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var enableSwagger = builder.Configuration.GetValue<bool>("SwaggerSettings:EnableSwagger", false);
+if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
