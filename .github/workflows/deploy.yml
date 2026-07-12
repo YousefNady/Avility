@@ -19,10 +19,6 @@ jobs:
         run: dotnet test --configuration Release --no-build
       - name: Publish API
         run: dotnet publish src/Avility.API/Avility.API.csproj --configuration Release --output ./publish --runtime win-x86 --self-contained false
-      - name: Verify publish output
-        run: |
-          Write-Host "Workspace: ${{ github.workspace }}"
-          Get-ChildItem -Path ./publish -Recurse | Select-Object -First 20
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
         with:
@@ -30,4 +26,4 @@ jobs:
           server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
           server-username: ${{ secrets.SERVER_USERNAME }}
           server-password: ${{ secrets.SERVER_PASSWORD }}
-          source-path: ./publish
+          source-path: ${{ github.workspace }}\publish
