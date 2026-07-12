@@ -1,0 +1,271 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Avility.Application.Common.Models;
+using Avility.API.Common.Responses;
+using Avility.Application.Auth;
+using Avility.Application.Common.Constants;
+using Avility.Application.Companies.Dtos;
+using Avility.Application.JobPostings.Dtos;
+using Avility.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace Avility.API.IntegrationTests;
+
+public class JobPostingTests : IClassFixture<CustomWebApplicationFactory>
+{
+    private readonly CustomWebApplicationFactory _factory;
+    private readonly HttpClient _client;
+
+    public JobPostingTests(CustomWebApplicationFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+    }
+
+    private static readonly object CompanyProfilePayload = new
+    {
+        companyName = "Acme Inc",
+        companySize = "ElevenToFifty",
+        foundedYear = 2015,
+        country = "Egypt",
+        governorate = "Giza",
+        city = "Giza"
+    };
+
+    private static readonly object PostingPayload = new
+    {
+        title = "Backend Engineer",
+        description = "Build APIs",
+        employmentType = "FullTime",
+        experienceLevel = "MidLevel",
+        isRemote = false,
+        country = "Egypt",
+        governorate = "Giza",
+        city = "Giza"
+    };
+
+    private async Task<(string Token, string Email)> RegisterVerifiedCompanyAsync()
+    {
+        var email = $"co-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Password123", role = "Company" });
+        register.EnsureSuccessStatusCode();
+        var token = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/companies/me", CompanyProfilePayload);
+        var getMe = await _client.GetAsync("/api/v1/companies/me");
+        var companyId = (await getMe.Content.ReadFromJsonAsync<ApiResponse<CompanyProfileDto>>())!.Data!.Id;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.FindByEmailAsync(email);
+            await userManager.AddToRoleAsync(user!, Roles.Admin);
+        }
+
+        var adminLogin = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Password123" });
+        var adminToken = (await adminLogin.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        await _client.PostAsync($"/api/v1/companies/{companyId}/verify", null);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return (token, email);
+    }
+
+    [Fact]
+    public async Task Create_WithoutCompanyProfile_ReturnsBadRequest()
+    {
+        var email = $"co-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Password123", role = "Company" });
+        var token = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Publish_WhenCompanyNotVerified_ReturnsBadRequest()
+    {
+        var email = $"co-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Password123", role = "Company" });
+        var token = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.PostAsJsonAsync("/api/v1/companies/me", CompanyProfilePayload);
+
+        var create = await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+        var postingId = (await create.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+
+        var publish = await _client.PostAsync($"/api/v1/jobpostings/{postingId}/publish", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, publish.StatusCode);
+    }
+
+    [Fact]
+    public async Task Publish_WhenVerified_Succeeds_AndAppearsInPublicSearch()
+    {
+        await RegisterVerifiedCompanyAsync();
+
+        var create = await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+        var postingId = (await create.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+
+        var publish = await _client.PostAsync($"/api/v1/jobpostings/{postingId}/publish", null);
+        Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
+
+        using var anonymousClient = _factory.CreateClient();
+        var search = await anonymousClient.GetAsync("/api/v1/jobpostings?search=Backend");
+        var page = await search.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>();
+
+        Assert.Equal(HttpStatusCode.OK, search.StatusCode);
+        Assert.Contains(page!.Data!.Items, p => p.Id == postingId);
+    }
+
+    [Fact]
+    public async Task GetById_DraftPosting_AsAnonymous_ReturnsNotFound()
+    {
+        await RegisterVerifiedCompanyAsync();
+        var create = await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+        var postingId = (await create.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+
+        using var anonymousClient = _factory.CreateClient();
+        var response = await anonymousClient.GetAsync($"/api/v1/jobpostings/{postingId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_ByNonOwningCompany_ReturnsForbidden()
+    {
+        await RegisterVerifiedCompanyAsync();
+        var create = await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+        var postingId = (await create.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+
+        var otherEmail = $"co-{Guid.NewGuid()}@test.com";
+        var otherRegister = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email = otherEmail, password = "Password123", role = "Company" });
+        var otherToken = (await otherRegister.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        await _client.PostAsJsonAsync("/api/v1/companies/me", CompanyProfilePayload);
+
+        var update = await _client.PutAsJsonAsync($"/api/v1/jobpostings/{postingId}", new
+        {
+            title = "Hijacked",
+            description = "Build APIs",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = false,
+            country = "Egypt",
+            governorate = "Giza",
+            city = "Giza"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, update.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMine_ReturnsOwnPostingsRegardlessOfStatus()
+    {
+        await RegisterVerifiedCompanyAsync();
+        await _client.PostAsJsonAsync("/api/v1/jobpostings", PostingPayload);
+
+        var response = await _client.GetAsync("/api/v1/jobpostings/mine");
+        var page = await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Single(page!.Data!.Items);
+    }
+    
+    [Fact]
+    public async Task Search_FilteredByDisabilityCategory_ReturnsOnlyMatchingPostings()
+    {
+        var (token, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var accessible = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Accessible Support Engineer",
+            description = "Remote role with full accommodation support",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true,
+            supportedDisabilityCategories = new[] { "Visual" },
+            accommodationDetails = "Screen-reader compatible tooling provided."
+        });
+        var accessibleId = (await accessible.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{accessibleId}/publish", null);
+
+        var other = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Standard Engineer Role",
+            description = "No accommodation info provided",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true
+        });
+        var otherId = (await other.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{otherId}/publish", null);
+
+        _client.DefaultRequestHeaders.Authorization = null;
+        var search = await _client.GetAsync("/api/v1/jobpostings?disabilityCategory=Visual");
+        var page = (await search.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+
+        Assert.Contains(page.Items, p => p.Id == accessibleId);
+        Assert.DoesNotContain(page.Items, p => p.Id == otherId);
+    }
+    
+    [Fact]
+    public async Task GetRecommended_RanksOverlappingPostingFirst()
+    {
+        var (companyToken, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", companyToken);
+
+        var matching = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Accessible Support Engineer",
+            description = "Remote role with full accommodation support",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true,
+            supportedDisabilityCategories = new[] { "Visual" }
+        });
+        var matchingId = (await matching.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{matchingId}/publish", null);
+
+        var nonMatching = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Standard Engineer Role",
+            description = "No accommodation info provided",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true
+        });
+        var nonMatchingId = (await nonMatching.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{nonMatchingId}/publish", null);
+
+        var seekerEmail = $"js-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email = seekerEmail, password = "Password123", role = "JobSeeker" });
+        var seekerToken = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seekerToken);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", new
+        {
+            fullName = "Test Seeker",
+            phoneNumber = "+201234567890",
+            yearsOfExperience = 2,
+            currentJobTitle = "Tester",
+            country = "Egypt",
+            governorate = "Giza",
+            city = "Giza",
+            disabilityCategories = new[] { "Visual" }
+        });
+
+        var recommended = await _client.GetAsync("/api/v1/jobpostings/recommended");
+        var page = (await recommended.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+
+        Assert.Contains(page.Items, p => p.Id == matchingId);
+        Assert.Contains(page.Items, p => p.Id == nonMatchingId);
+        Assert.True(page.Items.ToList().FindIndex(p => p.Id == matchingId) < page.Items.ToList().FindIndex(p => p.Id == nonMatchingId));
+    }
+}

@@ -191,10 +191,10 @@ Each `JobApplication` has a message thread between its JobSeeker and Company. Tw
   `POST /api/v1/jobapplications/{id}/messages`
 
 - **SignalR** (live delivery): connect to `/hubs/messages` with a JWT (via `Authorization` header, or `?access_token=` query string — required for browser WebSocket connections), then:
-  - `JoinThread(jobApplicationId)` — verifies you're a participant, joins the thread's group
-  - `SendMessage(jobApplicationId, body)` — delegates to the same command REST uses
-  - `LeaveThread(jobApplicationId)`
-  - Listen for the `MessageReceived` event
+    - `JoinThread(jobApplicationId)` — verifies you're a participant, joins the thread's group
+    - `SendMessage(jobApplicationId, body)` — delegates to the same command REST uses
+    - `LeaveThread(jobApplicationId)`
+    - Listen for the `MessageReceived` event
 
 Only the two actual participants (the applicant and the hiring company) can join a thread or send/receive on it.
 

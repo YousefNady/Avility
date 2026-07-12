@@ -1,0 +1,113 @@
+using Avility.Infrastructure.Persistence;
+using Avility.Infrastructure.Identity;
+using Avility.Application.Common.Interfaces;
+using Avility.Application.Messages;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Configuration;
+
+namespace Avility.API.IntegrationTests;
+
+public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
+{
+    private readonly string _dbName = $"AvilityTestDb-{Guid.NewGuid()}";
+    
+    // NEW: Temporary storage folder used by resume/file upload integration tests
+    private readonly string _storagePath =
+        Path.Combine(Path.GetTempPath(), $"AvilityTestStorage-{Guid.NewGuid()}");
+
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        
+        builder.UseSetting("Cors:AllowedOrigins:0", "http://localhost:5173");
+        builder.UseSetting("Jwt:Secret", "Testing-Only-Jwt-Secret-Value-Never-Used-In-Prod-0123456789");
+        
+        // NEW: Override file storage location so uploaded files are stored
+        // in a temporary folder during integration tests.
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["FileStorage:LocalRootPath"] = _storagePath
+            });
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            // Remove the existing DbContext registration
+            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+            services.RemoveAll<ApplicationDbContext>();
+
+            // Remove every EF provider registration (Sqlite)
+            var descriptors = services
+                .Where(d =>
+                    d.ServiceType.Namespace != null &&
+                    d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore"))
+                .ToList();
+
+            foreach (var descriptor in descriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Register InMemory instead
+            services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseInMemoryDatabase(_dbName);
+            });
+
+            var sp = services.BuildServiceProvider();
+            
+            // NEW: Replace the real SMTP sender with an in-memory test
+            // double so integration tests never attempt a real network
+            // call, and so tests can inspect the reset token that only
+            // exists inside the "sent" email body.
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender, FakeEmailSender>();
+            
+            services.RemoveAll<IMessageNotifier>();
+            services.AddSingleton<IMessageNotifier, FakeMessageNotifier>();
+
+            using var scope = sp.CreateScope();
+
+            var provider = scope.ServiceProvider;
+
+            var context = provider.GetRequiredService<ApplicationDbContext>();
+
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
+
+            SeedRolesAsync(provider).GetAwaiter().GetResult();
+        });
+    }
+
+    private static async Task SeedRolesAsync(IServiceProvider provider)
+    {
+        var roleManager = provider.GetRequiredService<RoleManager<ApplicationRole>>();
+
+        string[] roles =
+        {
+    "JobSeeker",
+    "Company",
+    "Admin"
+        };
+
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new ApplicationRole
+                {
+                    Name = role,
+                    NormalizedName = role.ToUpperInvariant()
+                });
+            }
+        }
+    }
+}

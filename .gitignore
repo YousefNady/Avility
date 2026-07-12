@@ -43,3 +43,9 @@ Thumbs.db
 ## EF Core
 *.db
 *.sqlite
+
+## Serilog
+logs/
+
+## File storage
+App_Data/
