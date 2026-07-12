@@ -1,4 +1,4 @@
-﻿name: Build, test, and deploy to MonsterASP.NET
+name: Build, test, and deploy to MonsterASP.NET
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 jobs:
   build_test_deploy:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +26,39 @@ jobs:
         run: dotnet test --configuration Release --no-build
 
       - name: Publish API
-        run: dotnet publish src/Avility.API/Avility.API.csproj --configuration Release --output ${{ github.workspace }}/publish --runtime win-x86 --self-contained false
+        shell: pwsh
+        run: |
+          dotnet publish src/Avility.API/Avility.API.csproj `
+            --configuration Release `
+            --runtime win-x86 `
+            --self-contained false `
+            --output "$env:GITHUB_WORKSPACE\publish"
+
+      - name: Verify publish output
+        shell: pwsh
+        run: |
+          Write-Host "Current Directory:"
+          Get-Location
+
+          Write-Host ""
+          Write-Host "Workspace:"
+          Write-Host $env:GITHUB_WORKSPACE
+
+          Write-Host ""
+          Write-Host "Workspace contents:"
+          Get-ChildItem $env:GITHUB_WORKSPACE
+
+          Write-Host ""
+          Write-Host "Checking publish folder..."
+
+          if (Test-Path "$env:GITHUB_WORKSPACE\publish") {
+            Write-Host "Publish folder FOUND"
+            Get-ChildItem "$env:GITHUB_WORKSPACE\publish" -Recurse
+          }
+          else {
+            Write-Host "Publish folder NOT FOUND"
+            exit 1
+          }
 
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
