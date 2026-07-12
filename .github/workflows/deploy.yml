@@ -27,4 +27,4 @@ jobs:
           server-username: ${{ secrets.SERVER_USERNAME }}
           server-password: ${{ secrets.SERVER_PASSWORD }}
           source-path: '\publish\'
-          skip-directory-path: 'BuildHost-net472,BuildHost-netcore'
+          skip-directory-path: 'BuildHost-net(472|core)'
