@@ -1,8 +1,24 @@
+<div align="center">
+
 # Avility
 
-**Avility** is an inclusive recruitment platform connecting job seekers with disabilities to companies committed to accessible, inclusive hiring. This repository contains the backend API — a Clean Architecture / CQRS solution built on ASP.NET Core.
+**An inclusive recruitment platform connecting job seekers with disabilities to companies committed to accessible, inclusive hiring.**
+
+This repository contains the backend API — a Clean Architecture / CQRS solution built on ASP.NET Core.
+
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download)
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2B%20CQRS-2ea44f)]()
+[![Tests](https://img.shields.io/badge/tests-xUnit-orange)]()
+[![Deploy](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/deploy.yml)
+
+</div>
+
+---
 
 Job seekers can disclose accessibility needs on their profile; companies can declare which accommodations a role supports; the platform uses that shared, structured data to rank and filter opportunities — not as an afterthought bolted onto a generic job board, but as a first-class part of the domain model.
+
+> 📘 **Want to test the API end-to-end?**
+> A complete, step-by-step Swagger testing guide is available under [`docs/api/API_TESTING_GUIDE.md`](docs/api/API_TESTING_GUIDE.md).
 
 ---
 
@@ -26,16 +42,16 @@ Job seekers can disclose accessibility needs on their profile; companies can dec
 
 | Concern | Technology |
 |---|---|
-| Runtime | .NET 10 / ASP.NET Core Web API |
-| Architecture | Clean Architecture, CQRS via MediatR |
-| Persistence | Entity Framework Core, SQLite |
-| Validation | FluentValidation |
-| Auth | ASP.NET Identity, JWT (access + rotating refresh tokens) |
-| Real-time | SignalR |
-| Logging | Serilog (console + rolling file, structured, correlation-ID enriched) |
-| API Docs | Swagger / OpenAPI (Swashbuckle), Development only |
-| Testing | xUnit, FluentValidation.TestHelper, WebApplicationFactory |
-| CI/CD | GitHub Actions → MonsterASP.NET (WebDeploy) |
+| **Runtime** | .NET 10 / ASP.NET Core Web API |
+| **Architecture** | Clean Architecture, CQRS via MediatR |
+| **Persistence** | Entity Framework Core, SQLite |
+| **Validation** | FluentValidation |
+| **Auth** | ASP.NET Identity, JWT (access + rotating refresh tokens) |
+| **Real-time** | SignalR |
+| **Logging** | Serilog (console + rolling file, structured, correlation-ID enriched) |
+| **API Docs** | Swagger / OpenAPI (Swashbuckle), Development only |
+| **Testing** | xUnit, FluentValidation.TestHelper, WebApplicationFactory |
+| **CI/CD** | GitHub Actions → MonsterASP.NET (WebDeploy) |
 
 ---
 
@@ -47,59 +63,92 @@ Clean Architecture, four layers, strict inward dependency:
 API → Infrastructure / Application → Domain
 ```
 
-- **Domain** — entities, value objects, enums, domain exceptions. Zero external dependencies, including zero reference to ASP.NET Identity.
-- **Application** — CQRS command/query handlers, DTOs, validators, pipeline behaviors (logging → validation → performance). Depends on Domain only.
-- **Infrastructure** — EF Core, ASP.NET Identity, JWT issuance, SMTP, local file storage, background jobs. Depends on Application + Domain.
-- **API** — controllers, middleware, SignalR hub, composition root.
+| Layer | Responsibility |
+|---|---|
+| **Domain** | Entities, value objects, enums, domain exceptions. Zero external dependencies, including zero reference to ASP.NET Identity. |
+| **Application** | CQRS command/query handlers, DTOs, validators, pipeline behaviors (logging → validation → performance). Depends on Domain only. |
+| **Infrastructure** | EF Core, ASP.NET Identity, JWT issuance, SMTP, local file storage, background jobs. Depends on Application + Domain. |
+| **API** | Controllers, middleware, SignalR hub, composition root. |
 
-Key conventions:
-- No generic repository — `IApplicationDbContext` (EF Core `DbSet<T>`) is the abstraction; EF Core already *is* the Repository + Unit of Work.
-- Manual DTO mapping via `ToDto()` extension methods — no AutoMapper.
-- Feature-based folder structure (`JobPostings/`, `JobApplications/`, `Messages/`, etc.), not technical folders.
-- Enums persisted as strings, always.
-- Ownership/authorization checks happen in Application handlers (or a shared `IJobApplicationAccessGuard` for multi-participant resources), not scattered role attributes alone.
-- A single response envelope (`ApiResponse<T>`) and pagination shape (`PagedResult<T>`) across every endpoint.
+**Key conventions:**
 
-See [`docs/adr/`](docs/adr/) for the reasoning behind specific decisions (why no generic repository, why manual mapping, why CQRS without event sourcing, etc.).
+- 🚫 No generic repository — `IApplicationDbContext` (EF Core `DbSet<T>`) is the abstraction; EF Core already *is* the Repository + Unit of Work.
+- ✋ Manual DTO mapping via `ToDto()` extension methods — no AutoMapper.
+- 📁 Feature-based folder structure (`JobPostings/`, `JobApplications/`, `Messages/`, etc.), not technical folders.
+- 🔤 Enums persisted as strings, always.
+- 🔐 Ownership/authorization checks happen in Application handlers (or a shared `IJobApplicationAccessGuard` for multi-participant resources), not scattered role attributes alone.
+- 📦 A single response envelope (`ApiResponse<T>`) and pagination shape (`PagedResult<T>`) across every endpoint.
+
+> See [`docs/adr/`](docs/adr/) for the reasoning behind specific decisions (why no generic repository, why manual mapping, why CQRS without event sourcing, etc.).
 
 ---
 
 ## Features
 
-**Accounts & Auth**
+<details open>
+<summary><strong>Accounts & Auth</strong></summary>
+
 - Registration/login/logout with JWT access tokens + rotating, hashed refresh tokens
 - Forgot/reset password via email
 - Policy-lite role authorization (JobSeeker / Company / Admin)
 - Rate-limited auth endpoints, plus a baseline global rate limiter across the whole API
 
-**Job Seekers**
+</details>
+
+<details open>
+<summary><strong>Job Seekers</strong></summary>
+
 - Profile management, resume upload/download
 - Optional, self-disclosed accessibility categories + accommodation notes
 - Personalized job recommendations, ranked by overlap with disclosed accessibility needs (deterministic, explainable — not a black-box model)
 
-**Companies**
+</details>
+
+<details open>
+<summary><strong>Companies</strong></summary>
+
 - Profile management, logo upload/download
 - Admin verification workflow (Pending → Verified/Rejected — only Verified companies can publish jobs)
 - Declared accommodation support per job posting (topic-based categories)
 
-**Job Postings & Applications**
+</details>
+
+<details open>
+<summary><strong>Job Postings & Applications</strong></summary>
+
 - Full posting lifecycle (Draft → Published → Closed)
 - Public search with accessibility-category filtering
 - Full application lifecycle (Applied → UnderReview → Accepted/Rejected, or Withdrawn)
 - Automatic email notification to the applicant on accept/reject
 
-**Messaging**
-- Per-application message thread between the JobSeeker and the Company
-- Real-time delivery via SignalR, with REST endpoints as history/fallback (see [Real-Time Messaging](#real-time-messaging))
+</details>
 
-**Resource Center**
+<details open>
+<summary><strong>Messaging</strong></summary>
+
+- Per-application message thread between the JobSeeker and the Company
+- Real-time delivery via SignalR, with REST endpoints as history/fallback (see [Real-Time Messaging](#-real-time-messaging))
+
+</details>
+
+<details open>
+<summary><strong>Resource Center</strong></summary>
+
 - Admin-managed learning resources, categorized by topic (career advice, interview prep, workplace accommodations, etc.)
 
-**Admin**
+</details>
+
+<details open>
+<summary><strong>Admin</strong></summary>
+
 - Platform statistics dashboard (users, companies by verification status, postings by lifecycle stage, applications by outcome)
 - User activation/deactivation, company verification, force-closing postings
 
-**Platform / Ops**
+</details>
+
+<details open>
+<summary><strong>Platform / Ops</strong></summary>
+
 - Background email delivery (in-process queue, no external broker)
 - Scheduled expired refresh-token cleanup
 - Correlation ID on every request/response, threaded through all logs
@@ -108,11 +157,14 @@ See [`docs/adr/`](docs/adr/) for the reasoning behind specific decisions (why no
 - Fail-fast startup guard against a misconfigured/default JWT secret
 - Bootstraps an initial Admin account from configuration — no manual DB edits needed on a fresh deployment
 
+</details>
+
 ---
 
 ## Getting Started
 
 ### Prerequisites
+
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 
 ### Setup
@@ -125,7 +177,7 @@ dotnet restore
 dotnet build
 ```
 
-Set the JWT secret (required — the app **will not start** without a real one; see [Configuration](#configuration)):
+> ⚠️ **Required:** set the JWT secret before running — the app **will not start** without a real one (see [Configuration](#-configuration)):
 
 ```bash
 cd src/Avility.API
@@ -161,8 +213,10 @@ All configuration follows standard ASP.NET Core precedence (`appsettings.json` �
 | `FileStorage` | `LocalRootPath` | Local disk storage for resumes/logos |
 | `BackgroundJobs` | `RefreshTokenCleanupIntervalHours` | Defaults to 24 |
 
-**Local development:** use `dotnet user-secrets` for anything above marked as a secret.
-**Production (MonsterASP.NET):** set via the hosting Control Panel's environment variables (`Section__Key` syntax, e.g. `Jwt__Secret`, `Seed__AdminEmail`).
+| Environment | Where secrets live |
+|---|---|
+| 💻 **Local development** | `dotnet user-secrets` for anything above marked as a secret |
+| ☁️ **Production (MonsterASP.NET)** | Hosting Control Panel's environment variables (`Section__Key` syntax, e.g. `Jwt__Secret`, `Seed__AdminEmail`) |
 
 ---
 
@@ -174,9 +228,11 @@ dotnet test
 
 Three test projects, matching the CQRS layering:
 
-- **`Avility.Domain.UnitTests`** — entity invariants and state machines, no mocking (Domain has zero dependencies).
-- **`Avility.Application.UnitTests`** — FluentValidation validator tests.
-- **`Avility.API.IntegrationTests`** — full black-box HTTP tests via `WebApplicationFactory`, EF Core InMemory provider, real registration/login/role-promotion flows. Handler-level behavior is verified here, not through isolated unit tests.
+| Project | Scope |
+|---|---|
+| **`Avility.Domain.UnitTests`** | Entity invariants and state machines, no mocking (Domain has zero dependencies). |
+| **`Avility.Application.UnitTests`** | FluentValidation validator tests. |
+| **`Avility.API.IntegrationTests`** | Full black-box HTTP tests via `WebApplicationFactory`, EF Core InMemory provider, real registration/login/role-promotion flows. Handler-level behavior is verified here, not through isolated unit tests. |
 
 Test doubles (`FakeEmailSender`, `FakeMessageNotifier`) replace real SMTP/SignalR delivery in the test host so no external service is ever contacted during a test run.
 
@@ -186,17 +242,20 @@ Test doubles (`FakeEmailSender`, `FakeMessageNotifier`) replace real SMTP/Signal
 
 Each `JobApplication` has a message thread between its JobSeeker and Company. Two ways to interact with it, both backed by the same validation/authorization/persistence path:
 
-- **REST** (history + fallback):
-  `GET /api/v1/jobapplications/{id}/messages`
-  `POST /api/v1/jobapplications/{id}/messages`
+**REST** (history + fallback)
+```
+GET  /api/v1/jobapplications/{id}/messages
+POST /api/v1/jobapplications/{id}/messages
+```
 
-- **SignalR** (live delivery): connect to `/hubs/messages` with a JWT (via `Authorization` header, or `?access_token=` query string — required for browser WebSocket connections), then:
-    - `JoinThread(jobApplicationId)` — verifies you're a participant, joins the thread's group
-    - `SendMessage(jobApplicationId, body)` — delegates to the same command REST uses
-    - `LeaveThread(jobApplicationId)`
-    - Listen for the `MessageReceived` event
+**SignalR** (live delivery) — connect to `/hubs/messages` with a JWT (via `Authorization` header, or `?access_token=` query string — required for browser WebSocket connections), then:
 
-Only the two actual participants (the applicant and the hiring company) can join a thread or send/receive on it.
+- `JoinThread(jobApplicationId)` — verifies you're a participant, joins the thread's group
+- `SendMessage(jobApplicationId, body)` — delegates to the same command REST uses
+- `LeaveThread(jobApplicationId)`
+- Listen for the `MessageReceived` event
+
+> Only the two actual participants (the applicant and the hiring company) can join a thread or send/receive on it.
 
 ---
 
@@ -225,8 +284,11 @@ Avility.sln
 │   ├── Avility.Domain.UnitTests
 │   ├── Avility.Application.UnitTests
 │   └── Avility.API.IntegrationTests
-├── .github/workflows/           # CI/CD
-└── docs/adr/                    # Architecture Decision Records
+├── docs/
+│   ├── adr/                    # Architecture Decision Records
+│   └── api/
+│       └── API_TESTING_GUIDE.md
+└── .github/workflows/           # CI/CD
 ```
 
 ---
@@ -235,14 +297,23 @@ Avility.sln
 
 Swagger UI (`/swagger`) is available in the Development environment and reflects the live API surface — versioned from `/api/v1/`, with a consistent `ApiResponse<T>` envelope and `PagedResult<T>` pagination shape across every list endpoint.
 
+For a full, ordered, endpoint-by-endpoint walkthrough with expected status codes, see [`docs/api/API_TESTING_GUIDE.md`](docs/api/API_TESTING_GUIDE.md).
+
 ---
 
 ## Roadmap
 
 Deferred, in rough priority order:
-- Real payment/subscription tier billing (currently no paid-service dependency in this project by design)
-- Localization / multi-language support
-- Cloud file storage (currently local disk)
-- Push/SMS notifications (email notifications are already live)
+
+- [ ] Real payment/subscription tier billing (currently no paid-service dependency in this project by design)
+- [ ] Localization / multi-language support
+- [ ] Cloud file storage (currently local disk)
+- [ ] Push/SMS notifications (email notifications are already live)
+
+---
+
+<div align="center">
 
 Contributions and issue reports welcome.
+
+</div>
