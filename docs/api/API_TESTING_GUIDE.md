@@ -1,6 +1,6 @@
 # Avility — Full Swagger Testing Guide
 
-A complete, ordered walkthrough of every endpoint via Swagger UI, with expected status codes and *why*. Designed to be run once, top to bottom, before recording/screenshotting for your LinkedIn post.
+A complete, ordered walkthrough of every endpoint via Swagger UI, with expected status codes and *why*. Designed to be run once, top to bottom.
 
 ## Before you start
 
