@@ -43,7 +43,7 @@ Do this in **each** of the 5 browser windows, using a distinct email per actor (
 
 Repeat identically for **Company B**, **JobSeeker A** (`role: "JobSeeker"`), **JobSeeker B**.
 
-### 1.2 ⚠️ Verify: registering as Admin is blocked
+### 1.2 Verify: registering as Admin is blocked
 `POST /auth/register`
 ```json
 { "email": "shouldnotwork@test.com", "password": "Password123!", "role": "Admin" }
@@ -114,7 +114,7 @@ Repeat identically for **Company B**, **JobSeeker A** (`role: "JobSeeker"`), **J
 ### 2.3 JobSeeker profile — get mine, no profile yet (as JobSeeker B)
 `GET /jobseekers/me` → **Expect: 404** (JobSeeker B hasn't created a profile yet).
 
-### 2.4 ⚠️ JobSeeker profile — create a second time (as JobSeeker A)
+### 2.4 JobSeeker profile — create a second time (as JobSeeker A)
 `POST /jobseekers/me` again with the same body.
 **Expect: some kind of 400.** I'm genuinely not certain whether this is caught cleanly by application logic or falls through to the database's unique constraint — **if you get a 500 instead of a 400 here, tell me**, that's a real gap worth fixing before you publish (a 500 on a duplicate-create is exactly the kind of thing a sharp viewer might try first).
 
@@ -123,7 +123,7 @@ Repeat identically for **Company B**, **JobSeeker A** (`role: "JobSeeker"`), **J
 **Expect: 200**, reflects the change on a follow-up GET.
 
 ### 2.6 Resume upload (as JobSeeker A)
-⚠️ Find the exact route in Swagger under the **JobSeekers** group (something like `POST /jobseekers/me/resume`) — use "Try it out," attach a real `.pdf`.
+ Find the exact route in Swagger under the **JobSeekers** group (something like `POST /jobseekers/me/resume`) — use "Try it out," attach a real `.pdf`.
 **Expect: 200.**
 
 ### 2.7 Resume upload — wrong file type
@@ -152,7 +152,7 @@ Repeat for **Company B** with a distinct `companyName`.
 ### 2.10 Company profile — get mine (as Company A)
 `GET /companies/me` → **200**. Note the `id` returned — this is your `companyId`.
 
-### 2.11 ⚠️ Company logo upload/download
+### 2.11 Company logo upload/download
 Find the logo endpoints under the **Companies** group in Swagger (this feature was built separately from this test guide — I don't have the exact route names memorized). Test upload with a real image, then download, and confirm it round-trips. If anything here 404s or behaves unexpectedly, that's useful to know before publishing, since I can't vouch for this part from direct review.
 
 ---
@@ -430,5 +430,3 @@ Click the **Authorize** button itself — confirm it shows a proper Bearer/JWT s
 - [ ] Phase 6 — Resources
 - [ ] Phase 7 — Admin dashboard + test email
 - [ ] Phase 8 — Cross-cutting (correlation ID, security headers, error envelope)
-
-If anything in the ⚠️-flagged items comes back differently than expected, tell me exactly what you saw (status code + response body) and I'll either explain why it's actually correct or we'll fix it as a real bug before you publish.
