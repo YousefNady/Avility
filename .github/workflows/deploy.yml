@@ -1,7 +1,7 @@
 name: Build, test, and deploy to MonsterASP.NET
 on:
   push:
-    branches: [development]
+    branches: [main]
 jobs:
   build_test_deploy:
     runs-on: windows-latest
