@@ -114,6 +114,44 @@ public sealed class IdentityService : IIdentityService
         return (active, inactive);
     }
     
+    public async Task<PagedResult<UserSummaryDto>> GetUsersAsync(int pageNumber, int pageSize, string? role, CancellationToken cancellationToken)
+    {
+        List<ApplicationUser> pagedUsers;
+        int totalCount;
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            // GetUsersInRoleAsync doesn't return an IQueryable, so
+            // filtering-by-role paginates in memory rather than at the DB
+            // level - acceptable at this project's user-count scale.
+            var usersInRole = await _userManager.GetUsersInRoleAsync(role);
+            totalCount = usersInRole.Count;
+            pagedUsers = usersInRole
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+        }
+        else
+        {
+            totalCount = await _userManager.Users.CountAsync(cancellationToken);
+            pagedUsers = await _userManager.Users
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+        }
+
+        var items = new List<UserSummaryDto>();
+        foreach (var user in pagedUsers)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            items.Add(new UserSummaryDto(user.Id, user.Email!, roles.ToList(), user.IsActive, user.CreatedAt, user.LastLoginAt));
+        }
+
+        return new PagedResult<UserSummaryDto>(items, pageNumber, pageSize, totalCount);
+    }
+    
     public async Task<string?> GeneratePasswordResetTokenAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);

@@ -4,9 +4,10 @@ using Avility.Application.Admin.Commands.ActivateUser;
 using Avility.Application.Admin.Commands.CloseJobPosting;
 using Avility.Application.Admin.Commands.DeactivateUser;
 using Avility.Application.Admin.Queries.GetPlatformStatistics;
+using Avility.Application.Admin.Queries.GetUsers;
+using Avility.Application.Common.Models;
 using Avility.Application.Admin.Commands.SendTestEmail;
 using Avility.Application.Common.Constants;
-using Avility.Application.Common.Models;
 using Avility.Application.Companies.Dtos;
 using Avility.Application.Companies.Queries.GetByVerificationStatus;
 using MediatR;
@@ -26,6 +27,13 @@ public sealed class AdminController : ControllerBase
     public AdminController(ISender sender)
     {
         _sender = sender;
+    }
+    
+    [HttpGet("users")]
+    public async Task<ActionResult<ApiResponse<PagedResult<UserSummaryDto>>>> GetUsers([FromQuery] GetUsersQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<UserSummaryDto>>.SuccessResponse(result));
     }
 
     [HttpGet("companies")]
