@@ -10,6 +10,7 @@ public interface IIdentityService
     Task<(string Email, IReadOnlyList<string> Roles)?> GetUserInfoAsync(Guid userId);
     Task<bool> SetUserActiveStatusAsync(Guid userId, bool isActive);
     Task<(int Active, int Inactive)> GetUserCountsAsync();
+    Task<PagedResult<UserSummaryDto>> GetUsersAsync(int pageNumber, int pageSize, string? role, CancellationToken cancellationToken);
     Task<string?> GeneratePasswordResetTokenAsync(string email);
     Task<(bool Succeeded, IReadOnlyList<string> Errors)> ResetPasswordAsync(string email, string token, string newPassword);
 }
