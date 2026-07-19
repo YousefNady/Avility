@@ -70,4 +70,44 @@ public class AdminUsersTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+    
+    [Fact]
+    public async Task GetUserDetails_ForJobSeeker_IncludesJobSeekerProfileOnly()
+    {
+        var seekerEmail = $"js-{Guid.NewGuid()}@test.com";
+        var register = await _client.PostAsJsonAsync("/api/v1/auth/register", new { email = seekerEmail, password = "Password123", role = "JobSeeker" });
+        var seekerToken = (await register.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seekerToken);
+        await _client.PostAsJsonAsync("/api/v1/jobseekers/me", new
+        {
+            fullName = "Detail Test Seeker", phoneNumber = "+201234567890", yearsOfExperience = 2,
+            currentJobTitle = "Tester", country = "Egypt", governorate = "Giza", city = "Giza"
+        });
+
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            userId = (await userManager.FindByEmailAsync(seekerEmail))!.Id;
+        }
+
+        var adminEmail = $"admin-{Guid.NewGuid()}@test.com";
+        await _client.PostAsJsonAsync("/api/v1/auth/register", new { email = adminEmail, password = "Password123", role = "JobSeeker" });
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var admin = await userManager.FindByEmailAsync(adminEmail);
+            await userManager.AddToRoleAsync(admin!, Roles.Admin);
+        }
+        var adminLogin = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email = adminEmail, password = "Password123" });
+        var adminToken = (await adminLogin.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>())!.Data!.AccessToken;
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var response = await _client.GetAsync($"/api/v1/admin/users/{userId}");
+        var details = (await response.Content.ReadFromJsonAsync<ApiResponse<Avility.Application.Admin.Queries.GetUserDetails.UserDetailsDto>>())!.Data!;
+
+        Assert.NotNull(details.JobSeekerProfile);
+        Assert.Null(details.CompanyProfile);
+        Assert.Equal("Detail Test Seeker", details.JobSeekerProfile!.FullName);
+    }
 }

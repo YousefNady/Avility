@@ -10,5 +10,6 @@ public sealed record SearchJobPostingsQuery(
     string? ExperienceLevel = null,
     bool? IsRemote = null,
     string? DisabilityCategory = null,
+    Guid? CompanyId = null,
     int PageNumber = 1,
     int PageSize = 10) : IRequest<PagedResult<JobPostingDto>>;

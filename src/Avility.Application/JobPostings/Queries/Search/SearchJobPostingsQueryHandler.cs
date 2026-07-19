@@ -41,6 +41,11 @@ public sealed class SearchJobPostingsQueryHandler : IRequestHandler<SearchJobPos
         {
             query = query.Where(p => p.IsRemote == request.IsRemote.Value);
         }
+        
+        if (request.CompanyId.HasValue)
+        {
+            query = query.Where(p => p.CompanyId == request.CompanyId.Value);
+        }
 
         query = query.OrderByDescending(p => p.PublishedAt);
 

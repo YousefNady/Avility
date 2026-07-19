@@ -152,6 +152,18 @@ public sealed class IdentityService : IIdentityService
         return new PagedResult<UserSummaryDto>(items, pageNumber, pageSize, totalCount);
     }
     
+    public async Task<(string Email, IReadOnlyList<string> Roles, bool IsActive, DateTime CreatedAt, DateTime? LastLoginAt)?> GetUserDetailsAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return null;
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        return (user.Email!, roles.ToList(), user.IsActive, user.CreatedAt, user.LastLoginAt);
+    }
+    
     public async Task<string?> GeneratePasswordResetTokenAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
