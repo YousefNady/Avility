@@ -13,4 +13,5 @@ namespace Avility.Application.Messages;
 public interface IMessageNotifier
 {
     Task NotifyAsync(MessageDto message, CancellationToken cancellationToken);
+    Task NotifyThreadReadAsync(Guid jobApplicationId, Guid readByUserId, CancellationToken cancellationToken);
 }
