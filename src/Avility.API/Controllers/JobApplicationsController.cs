@@ -12,6 +12,9 @@ using Avility.Application.JobApplications.Queries.GetMine;
 using Avility.Application.Messages.Commands.SendMessage;
 using Avility.Application.Messages.Dtos;
 using Avility.Application.Messages.Queries.GetThread;
+using Avility.Application.Messages.Commands.MarkThreadAsRead;
+using Avility.Application.Messages.Dtos;
+using Avility.Application.Messages.Queries.GetUnreadCounts;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,6 +96,22 @@ public sealed class JobApplicationsController : ControllerBase
     {
         var result = await _sender.Send(new GetThreadQuery(jobApplicationId, pageNumber, pageSize), cancellationToken);
         return Ok(ApiResponse<PagedResult<MessageDto>>.SuccessResponse(result));
+    }
+    
+    [Authorize]
+    [HttpPost("{jobApplicationId:guid}/messages/read")]
+    public async Task<ActionResult<ApiResponse<object>>> MarkMessagesAsRead(Guid jobApplicationId, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new MarkThreadAsReadCommand(jobApplicationId), cancellationToken);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Messages marked as read."));
+    }
+
+    [Authorize]
+    [HttpGet("unread-counts")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ConversationUnreadCountDto>>>> GetUnreadCounts(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetUnreadMessageCountsQuery(), cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<ConversationUnreadCountDto>>.SuccessResponse(result));
     }
 }
 

@@ -9,5 +9,7 @@ public static class MessageMappingExtensions
         entity.JobApplicationId,
         entity.SenderUserId,
         entity.Body,
-        entity.CreatedAt);
+        entity.CreatedAt,
+        entity.IsRead,
+        entity.ReadAt);
 }

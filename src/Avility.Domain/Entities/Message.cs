@@ -23,6 +23,10 @@ public sealed class Message : AuditableEntity
     public Guid SenderUserId { get; private set; }
 
     public string Body { get; private set; } = null!;
+    
+    public bool IsRead { get; private set; }
+    
+    public DateTime? ReadAt { get; private set; }
 
     private Message()
     {
@@ -53,5 +57,21 @@ public sealed class Message : AuditableEntity
         }
 
         return new Message(jobApplicationId, senderUserId, body.Trim());
+    }
+    
+    /// <summary>
+    /// Idempotent - safe to call on an already-read message (no-op),
+    /// since MarkThreadAsReadCommandHandler applies this to every
+    /// currently-unread message in a thread without checking state first.
+    /// </summary>
+    public void MarkAsRead(DateTime readAt)
+    {
+        if (IsRead)
+        {
+            return;
+        }
+
+        IsRead = true;
+        ReadAt = readAt;
     }
 }
