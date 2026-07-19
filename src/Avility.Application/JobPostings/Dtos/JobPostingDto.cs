@@ -20,4 +20,7 @@ public sealed record JobPostingDto(
     DateTime? PublishedAt,
     DateTime? ClosedAt,
     IReadOnlyList<string> SupportedDisabilityCategories,
-    string? AccommodationDetails);
+    string? AccommodationDetails,
+    string CompanyName,
+    string? CompanyLogoUrl,
+    bool IsCompanyVerified);

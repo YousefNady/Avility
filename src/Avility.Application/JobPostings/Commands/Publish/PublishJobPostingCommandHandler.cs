@@ -44,6 +44,6 @@ public sealed class PublishJobPostingCommandHandler : IRequestHandler<PublishJob
         posting.Publish(_dateTime.UtcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return posting.ToDto();
+        return posting.ToDto(company);
     }
 }

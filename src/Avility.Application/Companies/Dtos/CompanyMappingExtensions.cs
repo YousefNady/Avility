@@ -1,4 +1,5 @@
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 
 namespace Avility.Application.Companies.Dtos;
 
@@ -17,5 +18,20 @@ public static class CompanyMappingExtensions
         entity.VerificationStatus.ToString(),
         entity.Location.Country,
         entity.Location.Governorate,
-        entity.Location.City);
+        entity.Location.City,
+        entity.CreatedAt);
+    
+    public static PublicCompanyProfileDto ToPublicDto(this Company entity) => new(
+        entity.Id,
+        entity.CompanyName,
+        entity.Description,
+        entity.Industry,
+        entity.WebsiteUrl,
+        entity.LogoUrl,
+        entity.CompanySize.ToString(),
+        entity.FoundedYear,
+        entity.Location.Country,
+        entity.Location.Governorate,
+        entity.Location.City,
+        entity.VerificationStatus == CompanyVerificationStatus.Verified);
 }

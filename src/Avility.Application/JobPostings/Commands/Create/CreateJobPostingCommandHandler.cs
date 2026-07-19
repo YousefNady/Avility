@@ -54,6 +54,6 @@ public sealed class CreateJobPostingCommandHandler : IRequestHandler<CreateJobPo
         _dbContext.JobPostings.Add(posting);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return posting.ToDto();
+        return posting.ToDto(company);
     }
 }
