@@ -5,4 +5,6 @@ public sealed record MessageDto(
     Guid JobApplicationId,
     Guid SenderUserId,
     string Body,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    bool IsRead,
+    DateTime? ReadAt);

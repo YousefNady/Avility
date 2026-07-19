@@ -21,6 +21,11 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.Body)
             .IsRequired()
             .HasMaxLength(2000);
+        
+        builder.Property(m => m.IsRead)
+            .IsRequired();
+
+        builder.Property(m => m.ReadAt);
 
         // Cascade: a JobApplication's message thread is meaningless
         // without the application itself - unlike JobPosting->JobApplication

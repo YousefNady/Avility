@@ -6,6 +6,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Avility.Application.Messages.Commands.MarkThreadAsRead;
 
 namespace Avility.API.Hubs;
 
@@ -40,6 +41,9 @@ public sealed class MessagesHub : Hub
 
     public Task SendMessage(Guid jobApplicationId, string body) => ExecuteAsync(() =>
         _sender.Send(new SendMessageCommand(jobApplicationId, body), Context.ConnectionAborted));
+    
+    public Task MarkThreadAsRead(Guid jobApplicationId) => ExecuteAsync(() =>
+        _sender.Send(new MarkThreadAsReadCommand(jobApplicationId), Context.ConnectionAborted));
 
     /// <summary>
     /// SendMessageCommandHandler and the guard throw Application-layer

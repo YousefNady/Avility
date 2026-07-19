@@ -2,6 +2,7 @@
 using Avility.Application.Messages.Dtos;
 using Microsoft.AspNetCore.SignalR;
 
+
 namespace Avility.API.Hubs;
 
 /// <summary>
@@ -24,4 +25,9 @@ public sealed class SignalRMessageNotifier : IMessageNotifier
         _hubContext.Clients
             .Group(MessagesHub.GroupName(message.JobApplicationId))
             .SendAsync("MessageReceived", message, cancellationToken);
+    
+    public Task NotifyThreadReadAsync(Guid jobApplicationId, Guid readByUserId, CancellationToken cancellationToken) =>
+        _hubContext.Clients
+            .Group(MessagesHub.GroupName(jobApplicationId))
+            .SendAsync("MessagesRead", new { jobApplicationId, readByUserId }, cancellationToken);
 }

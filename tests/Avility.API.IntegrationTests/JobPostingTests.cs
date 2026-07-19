@@ -294,4 +294,35 @@ public class JobPostingTests : IClassFixture<CustomWebApplicationFactory>
         Assert.False(string.IsNullOrWhiteSpace(found.CompanyName));
         Assert.True(found.IsCompanyVerified);
     }
+    
+    [Fact]
+    public async Task Search_FilteredByCompanyId_ReturnsOnlyThatCompanysPostings()
+    {
+        var (tokenA, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+        var meA = await _client.GetAsync("/api/v1/companies/me");
+        var companyIdA = (await meA.Content.ReadFromJsonAsync<ApiResponse<CompanyProfileDto>>())!.Data!.Id;
+
+        var createA = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Company A Role", description = "desc", employmentType = "FullTime", experienceLevel = "MidLevel", isRemote = true
+        });
+        var postingIdA = (await createA.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{postingIdA}/publish", null);
+
+        var (tokenB, _) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenB);
+        var createB = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Company B Role", description = "desc", employmentType = "FullTime", experienceLevel = "MidLevel", isRemote = true
+        });
+        var postingIdB = (await createB.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{postingIdB}/publish", null);
+
+        var search = await _client.GetAsync($"/api/v1/jobpostings?companyId={companyIdA}");
+        var page = (await search.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+
+        Assert.Contains(page.Items, p => p.Id == postingIdA);
+        Assert.DoesNotContain(page.Items, p => p.Id == postingIdB);
+    }
 }

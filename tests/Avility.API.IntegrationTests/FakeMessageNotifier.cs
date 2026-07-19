@@ -26,4 +26,16 @@ public sealed class FakeMessageNotifier : IMessageNotifier
         _notified.Add(message);
         return Task.CompletedTask;
     }
+    
+    public sealed record ReadReceipt(Guid JobApplicationId, Guid ReadByUserId);
+
+    private static readonly ConcurrentBag<ReadReceipt> _readReceipts = new();
+
+    public static IReadOnlyCollection<ReadReceipt> ReadReceipts => _readReceipts.ToList();
+
+    public Task NotifyThreadReadAsync(Guid jobApplicationId, Guid readByUserId, CancellationToken cancellationToken)
+    {
+        _readReceipts.Add(new ReadReceipt(jobApplicationId, readByUserId));
+        return Task.CompletedTask;
+    }
 }
