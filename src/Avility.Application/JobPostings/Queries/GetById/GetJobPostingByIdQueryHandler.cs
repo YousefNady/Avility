@@ -21,13 +21,15 @@ public sealed class GetJobPostingByIdQueryHandler : IRequestHandler<GetJobPostin
     public async Task<JobPostingDto> Handle(GetJobPostingByIdQuery request, CancellationToken cancellationToken)
     {
         var posting = await _dbContext.JobPostings.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.JobPostingId, cancellationToken)
-            ?? throw new NotFoundException("JobPosting", request.JobPostingId);
+                      ?? throw new NotFoundException("JobPosting", request.JobPostingId);
+
+        var company = await _dbContext.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.Id == posting.CompanyId, cancellationToken)
+                      ?? throw new NotFoundException("Company", posting.CompanyId);
 
         if (posting.Status != JobPostingStatus.Published)
         {
             var userId = _currentUser.UserId;
-            var isOwner = userId is not null &&
-                await _dbContext.Companies.AnyAsync(c => c.Id == posting.CompanyId && c.UserId == userId, cancellationToken);
+            var isOwner = userId is not null && company.UserId == userId;
 
             if (!isOwner)
             {
@@ -35,6 +37,6 @@ public sealed class GetJobPostingByIdQueryHandler : IRequestHandler<GetJobPostin
             }
         }
 
-        return posting.ToDto();
+        return posting.ToDto(company);
     }
 }

@@ -2,6 +2,7 @@ using Avility.Application.Common.Extensions;
 using Avility.Application.Common.Interfaces;
 using Avility.Application.Common.Models;
 using Avility.Application.JobPostings.Dtos;
+using Avility.Domain.Entities;
 using Avility.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -46,14 +47,6 @@ public sealed class SearchJobPostingsQueryHandler : IRequestHandler<SearchJobPos
         if (!string.IsNullOrWhiteSpace(request.DisabilityCategory) &&
             Enum.TryParse<DisabilityCategory>(request.DisabilityCategory, out var category))
         {
-            // SupportedDisabilityCategories is stored as a converted
-            // collection (comma-separated string column) - EF Core can't
-            // translate a LINQ filter against a converted collection
-            // property into SQL. The other filters above have already
-            // narrowed the result set at the DB level, so this one
-            // optional filter is applied in memory against what's left.
-            // Reasonable at this project's scale; a high-volume version
-            // would normalize this into its own join table instead.
             var candidates = await query.ToListAsync(cancellationToken);
             var filtered = candidates.Where(p => p.SupportedDisabilityCategories.Contains(category)).ToList();
 
@@ -62,13 +55,31 @@ public sealed class SearchJobPostingsQueryHandler : IRequestHandler<SearchJobPos
                 .Take(request.PageSize)
                 .ToList();
 
+            var companiesForPage = await LoadCompaniesAsync(pagedItems, cancellationToken);
+
             return new PagedResult<JobPostingDto>(
-                pagedItems.Select(p => p.ToDto()).ToList(), request.PageNumber, request.PageSize, filtered.Count);
+                pagedItems.Select(p => p.ToDto(companiesForPage[p.CompanyId])).ToList(),
+                request.PageNumber, request.PageSize, filtered.Count);
         }
 
         var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+        var companies = await LoadCompaniesAsync(page.Items, cancellationToken);
 
         return new PagedResult<JobPostingDto>(
-            page.Items.Select(p => p.ToDto()).ToList(), page.PageNumber, page.PageSize, page.TotalCount);
+            page.Items.Select(p => p.ToDto(companies[p.CompanyId])).ToList(), page.PageNumber, page.PageSize, page.TotalCount);
+    }
+
+    /// <summary>
+    /// Batch-loads the distinct companies behind a page of postings in
+    /// one query rather than one query per row - JobPostingDto now
+    /// carries lightweight company info so the frontend doesn't need a
+    /// second request per job card.
+    /// </summary>
+    private async Task<Dictionary<Guid, Company>> LoadCompaniesAsync(IReadOnlyCollection<JobPosting> postings, CancellationToken cancellationToken)
+    {
+        var companyIds = postings.Select(p => p.CompanyId).Distinct().ToList();
+        return await _dbContext.Companies.AsNoTracking()
+            .Where(c => companyIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, cancellationToken);
     }
 }
