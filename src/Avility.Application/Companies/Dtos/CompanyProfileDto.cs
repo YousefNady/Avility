@@ -13,4 +13,5 @@ public sealed record CompanyProfileDto(
     string VerificationStatus,
     string Country,
     string Governorate,
-    string City);
+    string City,
+    DateTime CreatedAt);
