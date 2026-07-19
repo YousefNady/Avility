@@ -26,8 +26,10 @@ public sealed class UpdateJobPostingCommandHandler : IRequestHandler<UpdateJobPo
         var posting = await _dbContext.JobPostings.FirstOrDefaultAsync(p => p.Id == request.JobPostingId, cancellationToken)
             ?? throw new NotFoundException("JobPosting", request.JobPostingId);
 
-        var owns = await _dbContext.Companies.AnyAsync(c => c.Id == posting.CompanyId && c.UserId == userId, cancellationToken);
-        if (!owns)
+        var company = await _dbContext.Companies.FirstOrDefaultAsync(c => c.Id == posting.CompanyId, cancellationToken)
+                      ?? throw new NotFoundException("Company", posting.CompanyId);
+
+        if (company.UserId != userId)
         {
             throw new ForbiddenAccessException();
         }
@@ -57,6 +59,6 @@ public sealed class UpdateJobPostingCommandHandler : IRequestHandler<UpdateJobPo
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return posting.ToDto();
+        return posting.ToDto(company);
     }
 }

@@ -268,4 +268,30 @@ public class JobPostingTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Contains(page.Items, p => p.Id == nonMatchingId);
         Assert.True(page.Items.ToList().FindIndex(p => p.Id == matchingId) < page.Items.ToList().FindIndex(p => p.Id == nonMatchingId));
     }
+    
+    [Fact]
+    public async Task Search_Result_IncludesCompanyInfo()
+    {
+        var (token, companyId) = await RegisterVerifiedCompanyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var create = await _client.PostAsJsonAsync("/api/v1/jobpostings", new
+        {
+            title = "Company Info Test Role",
+            description = "Verifying company fields on JobPostingDto.",
+            employmentType = "FullTime",
+            experienceLevel = "MidLevel",
+            isRemote = true
+        });
+        var postingId = (await create.Content.ReadFromJsonAsync<ApiResponse<JobPostingDto>>())!.Data!.Id;
+        await _client.PostAsync($"/api/v1/jobpostings/{postingId}/publish", null);
+
+        _client.DefaultRequestHeaders.Authorization = null;
+        var search = await _client.GetAsync("/api/v1/jobpostings");
+        var page = (await search.Content.ReadFromJsonAsync<ApiResponse<PagedResult<JobPostingDto>>>())!.Data!;
+        var found = page.Items.Single(p => p.Id == postingId);
+
+        Assert.False(string.IsNullOrWhiteSpace(found.CompanyName));
+        Assert.True(found.IsCompanyVerified);
+    }
 }

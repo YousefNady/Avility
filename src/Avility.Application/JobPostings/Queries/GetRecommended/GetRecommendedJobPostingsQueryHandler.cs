@@ -9,15 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Avility.Application.JobPostings.Queries.GetRecommended;
 
-/// <summary>
-/// Deterministic, explainable ranking - not a black-box/AI recommender.
-/// Published postings are ordered by how many of the JobSeeker's own
-/// disclosed DisabilityCategories a posting's SupportedDisabilityCategories
-/// overlaps with, most-overlap first; postings with zero overlap still
-/// appear (just last, newest-first among themselves) - this re-ranks
-/// everything Published rather than filtering it down, so a JobSeeker who
-/// discloses nothing still sees every posting, just in normal order.
-/// </summary>
 public sealed class GetRecommendedJobPostingsQueryHandler : IRequestHandler<GetRecommendedJobPostingsQuery, PagedResult<JobPostingDto>>
 {
     private readonly IApplicationDbContext _dbContext;
@@ -43,10 +34,6 @@ public sealed class GetRecommendedJobPostingsQueryHandler : IRequestHandler<GetR
             .Where(p => p.Status == JobPostingStatus.Published)
             .ToListAsync(cancellationToken);
 
-        // Same reasoning as the disabilityCategory search filter: this
-        // property is a converted collection column EF can't translate
-        // into SQL, so the overlap/ordering happens in memory over the
-        // already-Published set.
         var ranked = published
             .OrderByDescending(p => OverlapCount(p, jobSeeker))
             .ThenByDescending(p => p.PublishedAt)
@@ -57,8 +44,13 @@ public sealed class GetRecommendedJobPostingsQueryHandler : IRequestHandler<GetR
             .Take(request.PageSize)
             .ToList();
 
+        var companyIds = pagedItems.Select(p => p.CompanyId).Distinct().ToList();
+        var companies = await _dbContext.Companies.AsNoTracking()
+            .Where(c => companyIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, cancellationToken);
+
         return new PagedResult<JobPostingDto>(
-            pagedItems.Select(p => p.ToDto()).ToList(), request.PageNumber, request.PageSize, ranked.Count);
+            pagedItems.Select(p => p.ToDto(companies[p.CompanyId])).ToList(), request.PageNumber, request.PageSize, ranked.Count);
     }
 
     private static int OverlapCount(JobPosting posting, JobSeeker jobSeeker) =>

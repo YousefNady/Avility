@@ -1,10 +1,11 @@
 using Avility.Domain.Entities;
+using Avility.Domain.Enums;
 
 namespace Avility.Application.JobPostings.Dtos;
 
 public static class JobPostingMappingExtensions
 {
-    public static JobPostingDto ToDto(this JobPosting entity) => new(
+    public static JobPostingDto ToDto(this JobPosting entity, Company company) => new(
         entity.Id,
         entity.CompanyId,
         entity.Title,
@@ -24,5 +25,8 @@ public static class JobPostingMappingExtensions
         entity.PublishedAt,
         entity.ClosedAt,
         entity.SupportedDisabilityCategories.Select(c => c.ToString()).ToList(),
-        entity.AccommodationDetails);
+        entity.AccommodationDetails,
+        company.CompanyName,
+        company.LogoUrl,
+        company.VerificationStatus == CompanyVerificationStatus.Verified);
 }

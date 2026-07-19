@@ -34,6 +34,6 @@ public sealed class GetMyJobPostingsQueryHandler : IRequestHandler<GetMyJobPosti
         var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
 
         return new PagedResult<JobPostingDto>(
-            page.Items.Select(p => p.ToDto()).ToList(), page.PageNumber, page.PageSize, page.TotalCount);
+            page.Items.Select(p => p.ToDto(company)).ToList(), page.PageNumber, page.PageSize, page.TotalCount);
     }
 }

@@ -7,6 +7,7 @@ using Avility.Application.Companies.Commands.UpdateProfile;
 using Avility.Application.Companies.Commands.VerifyCompany;
 using Avility.Application.Companies.Dtos;
 using Avility.Application.Companies.Queries.GetMyProfile;
+using Avility.Application.Companies.Queries.GetPublicProfile;
 using Avility.Application.Companies.Commands.DeleteLogo;
 using Avility.Application.Companies.Commands.UploadLogo;
 using Avility.Application.Companies.Queries.GetCompanyLogo;
@@ -36,6 +37,14 @@ public sealed class CompaniesController : ControllerBase
         return Ok(ApiResponse<CompanyProfileDto>.SuccessResponse(result));
     }
 
+    [AllowAnonymous]
+    [HttpGet("{companyId:guid}")]
+    public async Task<ActionResult<ApiResponse<PublicCompanyProfileDto>>> GetPublicProfile(Guid companyId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetPublicCompanyProfileQuery(companyId), cancellationToken);
+        return Ok(ApiResponse<PublicCompanyProfileDto>.SuccessResponse(result));
+    }
+    
     [Authorize(Roles = Roles.Company)]
     [HttpPost("me")]
     public async Task<ActionResult<ApiResponse<CompanyProfileDto>>> CreateMyProfile(CreateCompanyProfileCommand command, CancellationToken cancellationToken)
