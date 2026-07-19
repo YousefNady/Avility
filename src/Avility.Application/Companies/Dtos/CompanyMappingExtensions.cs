@@ -18,7 +18,8 @@ public static class CompanyMappingExtensions
         entity.VerificationStatus.ToString(),
         entity.Location.Country,
         entity.Location.Governorate,
-        entity.Location.City);
+        entity.Location.City,
+        entity.CreatedAt);
     
     public static PublicCompanyProfileDto ToPublicDto(this Company entity) => new(
         entity.Id,

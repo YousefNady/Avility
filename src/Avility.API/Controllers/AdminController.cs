@@ -38,9 +38,9 @@ public sealed class AdminController : ControllerBase
 
     [HttpGet("companies")]
     public async Task<ActionResult<ApiResponse<PagedResult<CompanyProfileDto>>>> GetCompanies(
-        [FromQuery] string? status, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+        [FromQuery] string? status, [FromQuery] string? search, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        var result = await _sender.Send(new GetCompaniesByVerificationStatusQuery(status, pageNumber, pageSize), cancellationToken);
+        var result = await _sender.Send(new GetCompaniesByVerificationStatusQuery(status, search, pageNumber, pageSize), cancellationToken);
         return Ok(ApiResponse<PagedResult<CompanyProfileDto>>.SuccessResponse(result));
     }
     

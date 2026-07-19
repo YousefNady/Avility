@@ -26,7 +26,12 @@ public sealed class GetCompaniesByVerificationStatusQueryHandler
         {
             query = query.Where(c => c.VerificationStatus == status);
         }
-
+        
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            query = query.Where(c => c.CompanyName.Contains(request.Search));
+        }
+        
         query = query.OrderBy(c => c.CreatedAt);
 
         var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
